@@ -12,6 +12,13 @@ import {
   saveReviewToMemory,
   type PlayerMemoryEntry,
 } from "@/lib/player-memory";
+import {
+  buildReviewFeedbackEntry,
+  createReviewFeedbackStore,
+  saveReviewFeedback,
+  usefulPartOptions,
+  type UsefulPart,
+} from "@/lib/review-feedback";
 import type { CoachingReport } from "@/services/ai";
 
 const loadingSteps = [
@@ -169,6 +176,10 @@ export default function ReviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState("");
+  const [feedbackUsefulPart, setFeedbackUsefulPart] = useState<UsefulPart>("Biggest Mistake");
+  const [feedbackImprovement, setFeedbackImprovement] = useState("");
+  const [isFeedbackDismissed, setIsFeedbackDismissed] = useState(false);
+  const [isFeedbackSent, setIsFeedbackSent] = useState(false);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -206,6 +217,10 @@ export default function ReviewPage() {
     setReport(null);
     setIsLoading(true);
     setActiveStep(0);
+    setFeedbackUsefulPart("Biggest Mistake");
+    setFeedbackImprovement("");
+    setIsFeedbackDismissed(false);
+    setIsFeedbackSent(false);
 
     try {
       const [response] = await Promise.all([
@@ -242,6 +257,25 @@ export default function ReviewPage() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleFeedbackSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!report) {
+      return;
+    }
+
+    const feedbackEntry = buildReviewFeedbackEntry({
+      usefulPart: feedbackUsefulPart,
+      improvement: feedbackImprovement,
+      grade: report.grade,
+    });
+
+    saveReviewFeedback(createReviewFeedbackStore(window.localStorage), feedbackEntry);
+    console.log("Kevixo review feedback", feedbackEntry);
+    setFeedbackImprovement(feedbackEntry.improvement);
+    setIsFeedbackSent(true);
   }
 
   return (
@@ -368,8 +402,123 @@ export default function ReviewPage() {
         {isLoading ? <LoadingState activeStep={activeStep} /> : null}
         {error ? <ErrorState message={error} /> : null}
         {report ? <ReportCards report={report} /> : null}
+        {report && !isFeedbackDismissed ? (
+          <FeedbackWidget
+            improvement={feedbackImprovement}
+            isSent={isFeedbackSent}
+            usefulPart={feedbackUsefulPart}
+            onDismiss={() => setIsFeedbackDismissed(true)}
+            onImprovementChange={setFeedbackImprovement}
+            onSubmit={handleFeedbackSubmit}
+            onUsefulPartChange={setFeedbackUsefulPart}
+          />
+        ) : null}
       </section>
     </main>
+  );
+}
+
+function FeedbackWidget({
+  improvement,
+  isSent,
+  usefulPart,
+  onDismiss,
+  onImprovementChange,
+  onSubmit,
+  onUsefulPartChange,
+}: {
+  improvement: string;
+  isSent: boolean;
+  usefulPart: UsefulPart;
+  onDismiss: () => void;
+  onImprovementChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onUsefulPartChange: (value: UsefulPart) => void;
+}) {
+  return (
+    <Card className="fade-in mt-6 border-primary/20 bg-slate-950/58 p-5 md:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <CardTitle>Feedback</CardTitle>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Help shape Kevixo while the review is fresh.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="rounded-full border border-slate-800 px-3 py-1 text-xs font-semibold text-slate-400 transition hover:border-slate-600 hover:text-slate-100"
+          aria-label="Dismiss feedback"
+        >
+          Dismiss
+        </button>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-5 grid gap-5">
+        <fieldset>
+          <legend className="text-sm font-medium text-slate-200">
+            What was the most useful part of this review?
+          </legend>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {usefulPartOptions.map((option) => {
+              const isSelected = usefulPart === option;
+
+              return (
+                <label
+                  key={option}
+                  className={[
+                    "flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 text-center text-sm font-semibold transition",
+                    isSelected
+                      ? "border-primary/55 bg-primary/10 text-primary shadow-[0_0_24px_rgba(59,201,255,0.12)]"
+                      : "border-slate-800 bg-slate-950/48 text-slate-300 hover:border-primary/30",
+                  ].join(" ")}
+                >
+                  <input
+                    type="radio"
+                    name="useful-part"
+                    value={option}
+                    checked={isSelected}
+                    onChange={() => onUsefulPartChange(option)}
+                    className="sr-only"
+                  />
+                  {option}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div>
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="feedback-improvement" className="text-sm font-medium text-slate-200">
+              What could be improved?
+            </label>
+            <p className="text-xs text-slate-500" aria-live="polite">
+              {improvement.length}/500
+            </p>
+          </div>
+          <Textarea
+            id="feedback-improvement"
+            value={improvement}
+            onChange={(event) => onImprovementChange(event.target.value.slice(0, 500))}
+            maxLength={500}
+            placeholder="Optional: tell us what would make the coaching more useful..."
+            className="mt-3 min-h-32 text-sm leading-6"
+          />
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button type="submit" className="min-w-40">
+            Send Feedback
+          </Button>
+          <p className="text-sm text-slate-500" role="status" aria-live="polite">
+            {isSent
+              ? "Feedback saved locally. Thank you."
+              : "Stored locally for now. No account required."}
+          </p>
+        </div>
+      </form>
+    </Card>
   );
 }
 
