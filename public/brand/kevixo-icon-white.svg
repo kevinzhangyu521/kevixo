@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Kevixo icon white</title>
+  <desc id="desc">A white geometric K mark for Kevixo.</desc>
+  <rect width="512" height="512" rx="116" fill="#020617"/>
+  <path fill="#F8FAFC" d="M157 128h68v256h-68V128Zm112 119 92-119h82L331 263l122 121h-90l-94-97v97h-68V128h68v119Z"/>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Kevixo icon</title>
+  <desc id="desc">A geometric K mark for Kevixo on a dark rounded square.</desc>
+  <defs>
+    <linearGradient id="kevixo-blue" x1="138" y1="92" x2="390" y2="424" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#020617"/>
+  <path fill="url(#kevixo-blue)" d="M157 128h68v256h-68V128Zm112 119 92-119h82L331 263l122 121h-90l-94-97v97h-68V128h68v119Z"/>
+</svg>

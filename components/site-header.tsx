@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -10,20 +11,18 @@ export function SiteHeader({ ctaLabel = "Review", larger = false }: SiteHeaderPr
   return (
     <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 md:py-8">
       <Link href="/" className="flex items-center gap-3" aria-label="Kevixo home">
-        <span
+        <Image
+          src="/brand/kevixo-logo.svg"
+          alt="Kevixo"
+          width={720}
+          height={160}
+          priority={larger}
           className={cn(
-            "flex items-center justify-center rounded-xl border border-slate-700/80 bg-slate-950 text-sm font-bold text-primary shadow-[0_0_30px_rgba(59,201,255,0.08)]",
-            larger ? "size-11 text-base" : "size-9",
+            "h-9 w-auto",
+            larger ? "h-11" : "h-9",
           )}
-        >
-          K
-        </span>
-        <span>
-          <span className={cn("block font-semibold text-slate-50", larger ? "text-base" : "text-sm")}>
-            Kevixo
-          </span>
-          <span className="block text-xs text-slate-600">Master Every Decision</span>
-        </span>
+        />
+        <span className="sr-only">Kevixo</span>
       </Link>
       <Link
         href="/review"

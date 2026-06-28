@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="160" viewBox="0 0 720 160" role="img" aria-labelledby="title desc">
+  <title id="title">Kevixo logo</title>
+  <desc id="desc">Kevixo wordmark with a geometric K icon.</desc>
+  <defs>
+    <linearGradient id="kevixo-blue" x1="34" y1="24" x2="126" y2="136" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="128" height="128" rx="30" fill="#020617"/>
+  <path fill="url(#kevixo-blue)" d="M54 44h18v72H54V44Zm31 33 25-33h23l-31 38 34 34h-25L85 89v27H67V44h18v33Z"/>
+  <text x="176" y="95" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="58" font-weight="700" letter-spacing="0">Kevixo</text>
+</svg>
