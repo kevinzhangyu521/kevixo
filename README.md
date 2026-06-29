@@ -9,9 +9,9 @@ npm install
 npm run dev
 ```
 
-## Google Analytics 4
+## Analytics
 
-Kevixo uses the official Google Analytics `gtag.js` integration through `next/script`.
+Kevixo uses Google Analytics 4 and Microsoft Clarity in production.
 
 Create a local environment file if you need to test production analytics behavior:
 
@@ -25,7 +25,25 @@ Set this variable in Vercel for Production:
 NEXT_PUBLIC_GA_MEASUREMENT_ID=G-4QJ105MCSE
 ```
 
-Analytics only loads when `NODE_ENV` is `production` and `NEXT_PUBLIC_GA_MEASUREMENT_ID` is present. Development builds do not send GA events.
+### Google Analytics 4
+
+Google Analytics uses the official `gtag.js` implementation through `next/script`.
+It only loads when `NODE_ENV` is `production` and `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+is present.
+
+### Microsoft Clarity
+
+Microsoft Clarity initializes with project ID `xeh07r3ewa`. It also loads only
+when `NODE_ENV` is `production`.
+
+Google Analytics uses `afterInteractive`, and Clarity injects an async script
+after the client mounts. Neither blocks initial page rendering.
+
+### Environment Variables
+
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID`: Google Analytics 4 measurement ID.
+
+### Custom Events
 
 Tracked events:
 

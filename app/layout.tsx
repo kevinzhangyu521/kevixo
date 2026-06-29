@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { GoogleAnalytics } from "@/components/google-analytics";
+import { AnalyticsScripts } from "@/components/google-analytics";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kevixo.vercel.app";
@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body>
-        <GoogleAnalytics />
+        <AnalyticsScripts />
         {children}
       </body>
     </html>

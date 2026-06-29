@@ -3,19 +3,44 @@
 import Script from "next/script";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { GA_MEASUREMENT_ID, trackPageView } from "@/lib/analytics";
+import {
+  CLARITY_PROJECT_ID,
+  GA_MEASUREMENT_ID,
+  initializeClarity,
+  initializeGoogleAnalytics,
+  isProductionAnalyticsEnabled,
+  trackPageView,
+} from "@/lib/analytics";
 
-export function GoogleAnalytics() {
-  const isEnabled = process.env.NODE_ENV === "production" && Boolean(GA_MEASUREMENT_ID);
+export function AnalyticsScripts() {
+  const isEnabled = isProductionAnalyticsEnabled();
+  const hasGoogleAnalytics = isEnabled && Boolean(GA_MEASUREMENT_ID);
+  const hasClarity = isEnabled && Boolean(CLARITY_PROJECT_ID);
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isEnabled) {
+    if (!hasGoogleAnalytics) {
+      return;
+    }
+
+    initializeGoogleAnalytics();
+  }, [hasGoogleAnalytics]);
+
+  useEffect(() => {
+    if (!hasClarity) {
+      return;
+    }
+
+    initializeClarity();
+  }, [hasClarity]);
+
+  useEffect(() => {
+    if (!hasGoogleAnalytics) {
       return;
     }
 
     trackPageView(`${window.location.pathname}${window.location.search}`);
-  }, [isEnabled, pathname]);
+  }, [hasGoogleAnalytics, pathname]);
 
   if (!isEnabled) {
     return null;
@@ -23,18 +48,12 @@ export function GoogleAnalytics() {
 
   return (
     <>
-      <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-        strategy="afterInteractive"
-      />
-      <Script id="google-analytics" strategy="afterInteractive">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });
-        `}
-      </Script>
+      {hasGoogleAnalytics ? (
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+      ) : null}
     </>
   );
 }

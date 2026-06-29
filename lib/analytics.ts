@@ -1,18 +1,29 @@
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
+export const CLARITY_PROJECT_ID = "xeh07r3ewa";
 
 type AnalyticsValue = string | number | boolean | undefined;
 type AnalyticsParams = Record<string, AnalyticsValue>;
 type GtagCommand = "config" | "event" | "js";
+type GtagArguments = [GtagCommand, string | Date, AnalyticsParams?];
+type ClarityArguments = [string, ...AnalyticsValue[]];
 
 declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (command: GtagCommand, target: string | Date, params?: AnalyticsParams) => void;
+    clarity?: {
+      (...args: ClarityArguments): void;
+      q?: ClarityArguments[];
+    };
   }
 }
 
 function isAnalyticsEnabled() {
   return process.env.NODE_ENV === "production" && Boolean(GA_MEASUREMENT_ID);
+}
+
+export function isProductionAnalyticsEnabled() {
+  return process.env.NODE_ENV === "production";
 }
 
 function ensureGtag() {
@@ -21,11 +32,40 @@ function ensureGtag() {
   }
 
   window.dataLayer = window.dataLayer ?? [];
-  window.gtag = window.gtag ?? function gtag() {
-    window.dataLayer?.push(arguments);
+  window.gtag = window.gtag ?? function gtag(...args: GtagArguments) {
+    window.dataLayer?.push(args);
   };
 
   return window.gtag;
+}
+
+export function initializeGoogleAnalytics() {
+  if (!isAnalyticsEnabled()) {
+    return;
+  }
+
+  const gtag = ensureGtag();
+
+  gtag?.("js", new Date());
+  gtag?.("config", GA_MEASUREMENT_ID, {
+    send_page_view: false,
+  });
+}
+
+export function initializeClarity() {
+  if (!isProductionAnalyticsEnabled() || typeof window === "undefined" || window.clarity) {
+    return;
+  }
+
+  window.clarity = function clarity(...args: ClarityArguments) {
+    window.clarity!.q = window.clarity!.q ?? [];
+    window.clarity!.q!.push(args);
+  };
+
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = `https://www.clarity.ms/tag/${CLARITY_PROJECT_ID}`;
+  document.head.appendChild(script);
 }
 
 export function trackPageView(path: string) {
