@@ -27,9 +27,9 @@ NEXT_PUBLIC_GA_MEASUREMENT_ID=G-4QJ105MCSE
 
 ### Google Analytics 4
 
-Google Analytics uses the official `gtag.js` implementation through `next/script`.
-It only loads when `NODE_ENV` is `production` and `NEXT_PUBLIC_GA_MEASUREMENT_ID`
-is present.
+Google Analytics uses the official Next.js `@next/third-parties/google`
+`GoogleAnalytics` component. It loads globally from `app/layout.tsx` only when
+`NODE_ENV` is `production`.
 
 ### Microsoft Clarity
 

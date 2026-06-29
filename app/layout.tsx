@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { AnalyticsScripts } from "@/components/google-analytics";
+import { GoogleAnalytics } from "@next/third-parties/google";
+import { AnalyticsScripts, GoogleAnalyticsBootstrap } from "@/components/google-analytics";
+import { GA_MEASUREMENT_ID } from "@/lib/analytics";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kevixo.vercel.app";
@@ -47,7 +49,11 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body>
         <AnalyticsScripts />
+        <GoogleAnalyticsBootstrap />
         {children}
+        {process.env.NODE_ENV === "production" ? (
+          <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />
+        ) : null}
       </body>
     </html>
   );

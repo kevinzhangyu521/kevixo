@@ -1,16 +1,17 @@
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
+import { sendGAEvent } from "@next/third-parties/google";
+
+export const GA_MEASUREMENT_ID =
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4QJ105MCSE";
 export const CLARITY_PROJECT_ID = "xeh07r3ewa";
 
 type AnalyticsValue = string | number | boolean | undefined;
 type AnalyticsParams = Record<string, AnalyticsValue>;
-type GtagCommand = "config" | "event" | "js";
-type GtagArguments = [GtagCommand, string | Date, AnalyticsParams?];
+type GtagArguments = ["js", Date] | ["config" | "event", string, AnalyticsParams?];
 type ClarityArguments = [string, ...AnalyticsValue[]];
 
 declare global {
   interface Window {
-    dataLayer?: unknown[];
-    gtag?: (command: GtagCommand, target: string | Date, params?: AnalyticsParams) => void;
+    gtag?: (...args: GtagArguments) => void;
     clarity?: {
       (...args: ClarityArguments): void;
       q?: ClarityArguments[];
@@ -26,9 +27,9 @@ export function isProductionAnalyticsEnabled() {
   return process.env.NODE_ENV === "production";
 }
 
-function ensureGtag() {
-  if (typeof window === "undefined") {
-    return null;
+export function initializeGoogleAnalytics() {
+  if (!isAnalyticsEnabled() || typeof window === "undefined") {
+    return;
   }
 
   window.dataLayer = window.dataLayer ?? [];
@@ -36,18 +37,8 @@ function ensureGtag() {
     window.dataLayer?.push(args);
   };
 
-  return window.gtag;
-}
-
-export function initializeGoogleAnalytics() {
-  if (!isAnalyticsEnabled()) {
-    return;
-  }
-
-  const gtag = ensureGtag();
-
-  gtag?.("js", new Date());
-  gtag?.("config", GA_MEASUREMENT_ID, {
+  window.gtag("js", new Date());
+  window.gtag("config", GA_MEASUREMENT_ID, {
     send_page_view: false,
   });
 }
@@ -73,7 +64,7 @@ export function trackPageView(path: string) {
     return;
   }
 
-  ensureGtag()?.("event", "page_view", {
+  sendGAEvent("event", "page_view", {
     page_path: path,
   });
 }
@@ -83,7 +74,7 @@ function trackEvent(eventName: string, params: AnalyticsParams = {}) {
     return;
   }
 
-  ensureGtag()?.("event", eventName, params);
+  sendGAEvent("event", eventName, params);
 }
 
 export function trackAnalyze() {

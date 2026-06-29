@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.9",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"
