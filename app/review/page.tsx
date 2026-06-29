@@ -6,6 +6,12 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { SiteHeader } from "@/components/site-header";
 import {
+  trackAnalyze,
+  trackDemoSelected,
+  trackFeedback,
+  trackReviewCompleted,
+} from "@/lib/analytics";
+import {
   buildMemoryEntry,
   createPlayerMemory,
   getPlayerMemoryInsights,
@@ -221,6 +227,7 @@ export default function ReviewPage() {
     setFeedbackImprovement("");
     setIsFeedbackDismissed(false);
     setIsFeedbackSent(false);
+    trackAnalyze();
 
     try {
       const [response] = await Promise.all([
@@ -243,6 +250,7 @@ export default function ReviewPage() {
       }
 
       setReport(payload.report);
+      trackReviewCompleted(payload.report);
       const nextMemoryReviews = saveReviewToMemory(
         createPlayerMemory(window.localStorage),
         buildMemoryEntry(payload.report),
@@ -273,6 +281,10 @@ export default function ReviewPage() {
     });
 
     saveReviewFeedback(createReviewFeedbackStore(window.localStorage), feedbackEntry);
+    trackFeedback({
+      usefulPart: feedbackEntry.usefulPart,
+      hasImprovementText: feedbackEntry.improvement.length > 0,
+    });
     console.log("Kevixo review feedback", feedbackEntry);
     setFeedbackImprovement(feedbackEntry.improvement);
     setIsFeedbackSent(true);
@@ -326,6 +338,7 @@ export default function ReviewPage() {
                         setHandHistory(demo.hand);
                         setReport(null);
                         setError("");
+                        trackDemoSelected(demo.id);
                       }}
                       className={[
                         "rounded-xl border p-3 text-left transition duration-200 hover:-translate-y-0.5",

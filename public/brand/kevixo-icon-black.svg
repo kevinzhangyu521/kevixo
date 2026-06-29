@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Kevixo icon black</title>
   <desc id="desc">A black geometric K mark for Kevixo on a transparent canvas.</desc>
-  <path fill="#020617" d="M157 128h68v256h-68V128Zm112 119 92-119h82L331 263l122 121h-90l-94-97v97h-68V128h68v119Z"/>
+  <path fill="#020617" d="M144 112h80v288h-80V112Zm80 112 112-112h96L320 256l144 144H352L224 288v-64Z"/>
 </svg>

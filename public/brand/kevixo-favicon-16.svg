@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" role="img" aria-labelledby="title desc">
+  <title id="title">Kevixo favicon 16</title>
+  <desc id="desc">A pixel-optimized Kevixo K mark for 16 pixel browser tabs.</desc>
+  <defs>
+    <linearGradient id="kevixo-favicon-blue" x1="4" y1="3" x2="13" y2="13" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="14" height="14" rx="3" fill="#020617"/>
+  <path fill="url(#kevixo-favicon-blue)" shape-rendering="crispEdges" d="M4 3h4v10H4V3Zm4 4 4-4h3l-4 5 4 5h-4l-3-3V7Z"/>
+</svg>

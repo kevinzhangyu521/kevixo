@@ -8,5 +8,5 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="116" fill="#020617"/>
-  <path fill="url(#kevixo-blue)" d="M157 128h68v256h-68V128Zm112 119 92-119h82L331 263l122 121h-90l-94-97v97h-68V128h68v119Z"/>
+  <path fill="url(#kevixo-blue)" d="M144 112h80v288h-80V112Zm80 112 112-112h96L320 256l144 144H352L224 288v-64Z"/>
 </svg>

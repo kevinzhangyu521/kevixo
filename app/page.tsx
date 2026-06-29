@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AnalyticsLink } from "@/components/analytics-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { SiteHeader } from "@/components/site-header";
@@ -46,7 +46,9 @@ export default function LandingPage() {
               className="min-h-14 min-w-56 px-7 text-base shadow-[0_0_36px_rgba(59,201,255,0.22)] hover:-translate-y-0.5 hover:shadow-[0_0_52px_rgba(59,201,255,0.32)]"
               aria-label="Analyze my hand"
             >
-              <Link href="/review">Analyze My Hand →</Link>
+              <AnalyticsLink href="/review" event="analyze_button_clicked">
+                Analyze My Hand →
+              </AnalyticsLink>
             </Button>
           </div>
 
