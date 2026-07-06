@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    host: "https://kevixo.com",
-    sitemap: "https://kevixo.com/sitemap.xml",
+    host: "https://www.kevixo.com",
+    sitemap: "https://www.kevixo.com/sitemap.xml",
   };
 }

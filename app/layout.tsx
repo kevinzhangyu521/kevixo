@@ -4,7 +4,7 @@ import { AnalyticsScripts, GoogleAnalyticsBootstrap } from "@/components/google-
 import { GA_MEASUREMENT_ID } from "@/lib/analytics";
 import "./globals.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kevixo.com";
+const siteUrl = "https://www.kevixo.com";
 const siteName = "Kevixo";
 const title = "Kevixo | Every Hand Makes You Better.";
 const description = "AI-powered poker coaching that helps you improve one decision at a time.";

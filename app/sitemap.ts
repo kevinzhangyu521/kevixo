@@ -5,13 +5,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     {
-      url: "https://kevixo.com/",
+      url: "https://www.kevixo.com/",
       lastModified,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
-      url: "https://kevixo.com/review",
+      url: "https://www.kevixo.com/review",
       lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
