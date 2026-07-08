@@ -84,9 +84,9 @@ function getMissingSupabaseAdminVariables() {
 
 function getFeedbackInsertClient() {
   const supabaseUrl = getSupabaseUrl();
-  const supabaseAnonKey = getSupabaseAnonKey();
+  const supabaseInsertKey = getSupabaseServiceRoleKey() ?? getSupabaseAnonKey();
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseInsertKey) {
     throw new Error(
       `Supabase public environment variables are not configured. Missing: ${getMissingSupabasePublicVariables().join(", ")}`,
     );
@@ -94,7 +94,7 @@ function getFeedbackInsertClient() {
 
   logSupabaseRequestUrl("feedback:insert", supabaseUrl);
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  return createClient(supabaseUrl, supabaseInsertKey, {
     auth: {
       persistSession: false,
     },
