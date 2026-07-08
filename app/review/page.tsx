@@ -399,6 +399,15 @@ export default function ReviewPage() {
     }
   }
 
+  function loadDemoHand(demo = demoHands[0]) {
+    setSelectedDemoId(demo.id);
+    setHandHistory(demo.hand);
+    setReport(null);
+    setError("");
+    setReviewLookupMessage("");
+    trackDemoSelected(demo.id);
+  }
+
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader />
@@ -442,11 +451,7 @@ export default function ReviewPage() {
                       key={demo.id}
                       type="button"
                       onClick={() => {
-                        setSelectedDemoId(demo.id);
-                        setHandHistory(demo.hand);
-                        setReport(null);
-                        setError("");
-                        trackDemoSelected(demo.id);
+                        loadDemoHand(demo);
                       }}
                       className={[
                         "rounded-xl border p-3 text-left transition duration-200 hover:-translate-y-0.5",
@@ -505,12 +510,7 @@ export default function ReviewPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => {
-                    setSelectedDemoId(demoHands[0].id);
-                    setHandHistory(demoHands[0].hand);
-                    setReport(null);
-                    setError("");
-                  }}
+                  onClick={() => loadDemoHand()}
                 >
                   Reset Demo
                 </Button>
@@ -522,7 +522,9 @@ export default function ReviewPage() {
 
         {isLoading ? <LoadingState activeStep={activeStep} /> : null}
         {reviewLookupMessage ? <ReviewUnavailable message={reviewLookupMessage} /> : null}
-        {error ? <HandCompletionAssistant handHistory={handHistory} /> : null}
+        {error ? (
+          <HandCompletionAssistant handHistory={handHistory} onTryDemo={() => loadDemoHand()} />
+        ) : null}
         {report ? <ReportCards report={report} /> : null}
         {report && !isFeedbackDismissed ? (
           <FeedbackWidget
@@ -786,7 +788,13 @@ function LoadingState({ activeStep }: { activeStep: number }) {
   );
 }
 
-function HandCompletionAssistant({ handHistory }: { handHistory: string }) {
+function HandCompletionAssistant({
+  handHistory,
+  onTryDemo,
+}: {
+  handHistory: string;
+  onTryDemo: () => void;
+}) {
   const missingItems = getMissingHandDetails(handHistory);
 
   return (
@@ -807,11 +815,26 @@ function HandCompletionAssistant({ handHistory }: { handHistory: string }) {
       <div className="mt-6 grid gap-3 md:grid-cols-2">
         {missingItems.map((item) => (
           <div
-            key={item}
+            key={item.label}
             className="rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-sm leading-6 text-slate-200"
           >
-            <span className="mr-2 text-primary">Add</span>
-            {item}
+            <div className="flex items-start gap-3">
+              <span
+                className={[
+                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
+                  item.isMissing
+                    ? "border-primary/35 bg-primary/10 text-primary"
+                    : "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+                ].join(" ")}
+                aria-hidden="true"
+              >
+                {item.isMissing ? "+" : "✓"}
+              </span>
+              <div>
+                <p className="font-semibold text-slate-50">{item.label}</p>
+                <p className="mt-1 text-slate-400">{item.help}</p>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -837,9 +860,14 @@ function HandCompletionAssistant({ handHistory }: { handHistory: string }) {
         <p className="text-sm leading-6 text-slate-500">
           You can keep editing this hand on the page. Nothing was rejected.
         </p>
-        <Button asChild variant="secondary">
-          <Link href="/import">Open Import Options</Link>
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="button" onClick={onTryDemo}>
+            Try Demo Hand
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/import">Open Import Options</Link>
+          </Button>
+        </div>
       </div>
     </Card>
   );
@@ -847,41 +875,45 @@ function HandCompletionAssistant({ handHistory }: { handHistory: string }) {
 
 function getMissingHandDetails(handHistory: string) {
   const normalized = handHistory.toLowerCase();
-  const missingItems: string[] = [];
+  const hasSeats = /\b(seat|hero|villain|button|small blind|big blind|sb|bb)\b/i.test(handHistory);
+  const hasHoleCards = /\b(dealt to|hero cards?|hole cards?|[AKQJT2-9][cdhs]\s+[AKQJT2-9][cdhs])\b/i.test(handHistory);
+  const hasBoard = normalized.includes("flop") || normalized.includes("turn") || normalized.includes("river");
+  const hasBettingActions = /\b(bet|bets|call|calls|raise|raises|fold|folds|check|checks|posts?)\b/i.test(handHistory);
+  const hasBetSizes = /[$€£]?\d+(?:\.\d+)?\s*(?:bb|BB)?/.test(handHistory);
+  const hasStackSizes = /\(\$?\d+(?:\.\d+)?\)|stack|effective|seat\s+\d+:\s+.+\$?\d+/i.test(handHistory);
 
-  if (!/\b(seat|hero|villain|button|small blind|big blind|sb|bb)\b/i.test(handHistory)) {
-    missingItems.push("player positions or blinds");
-  }
-
-  if (!/\b(dealt to|hero cards?|hole cards?|[AKQJT2-9][cdhs]\s+[AKQJT2-9][cdhs])\b/i.test(handHistory)) {
-    missingItems.push("hero hole cards");
-  }
-
-  if (!normalized.includes("flop")) {
-    missingItems.push("flop cards");
-  }
-
-  if (!normalized.includes("turn")) {
-    missingItems.push("turn card");
-  }
-
-  if (!normalized.includes("river")) {
-    missingItems.push("river card or final street");
-  }
-
-  if (!/\b(bet|call|raise|fold|check|posts?)\b/i.test(handHistory)) {
-    missingItems.push("betting actions and sizes");
-  }
-
-  if (missingItems.length === 0) {
-    return [
-      "the full action before and after the decision point",
-      "stacks, blinds, and board cards if they were omitted",
-      "the final action you want Kevixo to review",
-    ];
-  }
-
-  return missingItems;
+  return [
+    {
+      label: "Seats",
+      help: "Player seats, blinds, button, and hero/villain positions.",
+      isMissing: !hasSeats,
+    },
+    {
+      label: "Hole cards",
+      help: "Hero's two private cards.",
+      isMissing: !hasHoleCards,
+    },
+    {
+      label: "Board",
+      help: "Flop, turn, river, or the final street available in the hand.",
+      isMissing: !hasBoard,
+    },
+    {
+      label: "Betting actions",
+      help: "Checks, bets, calls, raises, folds, and posting blinds.",
+      isMissing: !hasBettingActions,
+    },
+    {
+      label: "Bet sizes",
+      help: "The amount for each bet, call, raise, blind, or all-in.",
+      isMissing: !hasBetSizes,
+    },
+    {
+      label: "Stack sizes",
+      help: "Starting stacks or effective stacks for the players in the hand.",
+      isMissing: !hasStackSizes,
+    },
+  ];
 }
 
 function ReportCards({ report }: { report: CoachingReport }) {
