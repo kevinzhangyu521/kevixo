@@ -57,15 +57,15 @@ export class SupabaseFeedbackError extends Error {
 const tableName = "review_feedback";
 
 function getSupabaseUrl() {
-  return normalizeSupabaseProjectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  return normalizeSupabaseProjectUrl(readRuntimeEnv("NEXT_PUBLIC_SUPABASE_URL"));
 }
 
 function getSupabaseAnonKey() {
-  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  return readRuntimeEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 }
 
 function getSupabaseServiceRoleKey() {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return readRuntimeEnv("SUPABASE_SERVICE_ROLE_KEY");
 }
 
 function getMissingSupabasePublicVariables() {
@@ -204,9 +204,9 @@ export function getSupabaseEnvironmentDebug(): SupabaseEnvironmentDebug {
 
   return {
     expected: {
-      NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-      SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      NEXT_PUBLIC_SUPABASE_URL: Boolean(readRuntimeEnv("NEXT_PUBLIC_SUPABASE_URL")),
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(readRuntimeEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")),
+      SUPABASE_SERVICE_ROLE_KEY: Boolean(readRuntimeEnv("SUPABASE_SERVICE_ROLE_KEY")),
     },
     suspiciousNames: envNames.filter((name) =>
       [
@@ -217,6 +217,10 @@ export function getSupabaseEnvironmentDebug(): SupabaseEnvironmentDebug {
     ),
     availableSupabaseNames: envNames.filter((name) => name.includes("SUPABASE")),
   };
+}
+
+function readRuntimeEnv(name: string) {
+  return process.env[name]?.trim();
 }
 
 export async function listReviewFeedback({
