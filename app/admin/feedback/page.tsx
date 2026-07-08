@@ -107,6 +107,15 @@ export default function FeedbackAdminPage() {
     setIsAuthorized(true);
   }
 
+  function handleLogout() {
+    window.sessionStorage.removeItem("kevixo.feedbackAdminAuthorized");
+    setIsAuthorized(false);
+    setPasscode("");
+    setFeedback([]);
+    setTotalFeedback(0);
+    setAdminError("");
+  }
+
   async function markResolved(id: string) {
     if (!adminKey) {
       return;
@@ -205,12 +214,20 @@ export default function FeedbackAdminPage() {
               Feedback
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
-              Central admin view for review feedback submitted from Kevixo.
+              Review what players are telling you, follow up when needed, and keep the
+              product feedback loop moving.
             </p>
           </div>
-          <span className="rounded-full border border-slate-800 bg-slate-950/48 px-3 py-1 text-xs font-semibold text-slate-400">
-            Supabase: review_feedback
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {isAuthorized ? (
+              <Button variant="secondary" onClick={handleLogout}>
+                Logout
+              </Button>
+            ) : null}
+            <span className="rounded-full border border-slate-800 bg-slate-950/48 px-3 py-1 text-xs font-semibold text-slate-400">
+              Feedback Database
+            </span>
+          </div>
         </div>
 
         {!isAuthorized ? (
@@ -231,7 +248,7 @@ export default function FeedbackAdminPage() {
                     setQuery(event.target.value);
                     setPage(1);
                   }}
-                  placeholder="Search message, grade, status, browser..."
+                  placeholder="Search notes, email, grade, browser..."
                   className="min-h-11 rounded-xl border border-slate-800 bg-slate-950/70 px-4 text-slate-100 placeholder:text-slate-600"
                 />
               </label>
@@ -277,7 +294,7 @@ export default function FeedbackAdminPage() {
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-slate-500">
-                Showing {feedback.length} of {totalFeedback} feedback items.
+                Showing {feedback.length} of {totalFeedback} feedback notes.
               </p>
               <div className="flex gap-2">
                 <Button
@@ -318,11 +335,11 @@ function AdminGate({
     <Card className="mt-8 max-w-xl p-5 md:p-6">
       <CardTitle>Admin Access</CardTitle>
       <p className="mt-3 text-sm leading-6 text-slate-400">
-        This page is gated with the `NEXT_PUBLIC_ADMIN_FEEDBACK_KEY` environment variable.
+        Enter the founder passcode to review player feedback.
       </p>
       {!hasKey ? (
         <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-950/20 p-4 text-sm leading-6 text-amber-100">
-          Admin key is not configured yet, so feedback cannot be viewed in production.
+          Admin access is not configured yet, so feedback cannot be viewed in production.
         </p>
       ) : (
         <form onSubmit={onSubmit} className="mt-5 grid gap-4">
@@ -333,7 +350,7 @@ function AdminGate({
             placeholder="Admin passcode"
             className="min-h-11 rounded-xl border border-slate-800 bg-slate-950/70 px-4 text-slate-100 placeholder:text-slate-600"
           />
-          <Button type="submit">Unlock Feedback</Button>
+          <Button type="submit">Open Feedback</Button>
         </form>
       )}
     </Card>
@@ -384,10 +401,10 @@ function FeedbackRow({
             disabled={entry.status === "resolved"}
             onClick={() => onMarkResolved(entry.id)}
           >
-            Resolve
+            Mark Resolved
           </Button>
           <Button variant="secondary" onClick={() => onDeleteSpam(entry.id)}>
-            Delete Spam
+            Delete
           </Button>
         </div>
       </div>
@@ -395,13 +412,20 @@ function FeedbackRow({
       <dl className="mt-4 grid gap-3 border-t border-slate-800 pt-4 text-sm md:grid-cols-4">
         <FeedbackMeta label="Grade" value={entry.grade} />
         <ReviewIdMeta reviewId={entry.reviewId} />
-        <FeedbackMeta label="Email" value={entry.email ?? "Not stored"} />
-        <FeedbackMeta label="User Agent" value={entry.userAgent ?? entry.browser ?? "Not stored"} />
+        <FeedbackMeta
+          label="Email"
+          value={entry.email ?? "Not provided"}
+          emphasize={Boolean(entry.email)}
+        />
+        <FeedbackMeta
+          label="Device / Browser"
+          value={entry.userAgent ?? entry.browser ?? "Not provided"}
+        />
       </dl>
 
       <div className="mt-4 grid gap-3 border-t border-slate-800 pt-4 md:grid-cols-[1fr_auto] md:items-end">
         <label className="grid gap-2 text-sm font-medium text-slate-200">
-          Admin note
+          Internal Note
           <input
             value={adminNote}
             onChange={(event) => setAdminNote(event.target.value.slice(0, 500))}
@@ -425,7 +449,7 @@ function ReviewIdMeta({ reviewId }: { reviewId?: string }) {
   return (
     <div>
       <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-        Review ID
+        Linked Review
       </dt>
       <dd className="mt-1">
         {reviewId ? (
@@ -436,18 +460,33 @@ function ReviewIdMeta({ reviewId }: { reviewId?: string }) {
             <span className="truncate">{reviewId}</span>
           </Link>
         ) : (
-          <span className="text-slate-300">Not stored</span>
+          <span className="text-slate-300">Not provided</span>
         )}
       </dd>
     </div>
   );
 }
 
-function FeedbackMeta({ label, value }: { label: string; value: string }) {
+function FeedbackMeta({
+  label,
+  value,
+  emphasize = false,
+}: {
+  label: string;
+  value: string;
+  emphasize?: boolean;
+}) {
   return (
     <div>
       <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</dt>
-      <dd className="mt-1 break-words text-slate-300">{value}</dd>
+      <dd
+        className={[
+          "mt-1 break-words",
+          emphasize ? "font-medium text-slate-100" : "text-slate-300",
+        ].join(" ")}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

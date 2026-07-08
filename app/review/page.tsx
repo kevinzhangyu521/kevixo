@@ -57,6 +57,7 @@ export default function ReviewPage() {
   const [reviewLookupMessage, setReviewLookupMessage] = useState("");
   const [feedbackUsefulPart, setFeedbackUsefulPart] = useState<UsefulPart>("Biggest Mistake");
   const [feedbackImprovement, setFeedbackImprovement] = useState("");
+  const [feedbackEmail, setFeedbackEmail] = useState("");
   const [isFeedbackDismissed, setIsFeedbackDismissed] = useState(false);
   const [isFeedbackSent, setIsFeedbackSent] = useState(false);
   const [isFeedbackSaving, setIsFeedbackSaving] = useState(false);
@@ -156,6 +157,7 @@ export default function ReviewPage() {
     setActiveStep(0);
     setFeedbackUsefulPart("Biggest Mistake");
     setFeedbackImprovement("");
+    setFeedbackEmail("");
     setIsFeedbackDismissed(false);
     setIsFeedbackSent(false);
     setIsFeedbackSaving(false);
@@ -214,10 +216,18 @@ export default function ReviewPage() {
       return;
     }
 
+    const normalizedEmail = feedbackEmail.trim();
+
+    if (normalizedEmail && !isValidFeedbackEmail(normalizedEmail)) {
+      setFeedbackStatusMessage("Please enter a valid email address, or leave it blank.");
+      return;
+    }
+
     const feedbackEntry = buildReviewFeedbackEntry({
       usefulPart: feedbackUsefulPart,
       improvement: feedbackImprovement,
       grade: report.grade,
+      email: normalizedEmail || undefined,
       reviewId: report.reviewId,
       browser: window.navigator.userAgent,
       userAgent: window.navigator.userAgent,
@@ -254,11 +264,13 @@ export default function ReviewPage() {
       });
       console.log("Kevixo review feedback", payload.feedback);
       setFeedbackImprovement(payload.feedback.improvement);
+      setFeedbackEmail(payload.feedback.email ?? "");
       setIsFeedbackSent(true);
       setFeedbackStatusMessage("Feedback sent. Thank you.");
     } catch (caughtError) {
       console.error("Kevixo feedback insert failed", caughtError);
       setFeedbackImprovement(feedbackEntry.improvement);
+      setFeedbackEmail(feedbackEntry.email ?? "");
       setIsFeedbackSent(false);
       setFeedbackStatusMessage(
         caughtError instanceof Error
@@ -400,11 +412,13 @@ export default function ReviewPage() {
         {report && !isFeedbackDismissed ? (
           <FeedbackWidget
             improvement={feedbackImprovement}
+            email={feedbackEmail}
             isSaving={isFeedbackSaving}
             isSent={isFeedbackSent}
             statusMessage={feedbackStatusMessage}
             usefulPart={feedbackUsefulPart}
             onDismiss={() => setIsFeedbackDismissed(true)}
+            onEmailChange={setFeedbackEmail}
             onImprovementChange={setFeedbackImprovement}
             onSubmit={handleFeedbackSubmit}
             onUsefulPartChange={setFeedbackUsefulPart}
@@ -428,21 +442,25 @@ function ReviewUnavailable({ message }: { message: string }) {
 
 function FeedbackWidget({
   improvement,
+  email,
   isSaving,
   isSent,
   statusMessage,
   usefulPart,
   onDismiss,
+  onEmailChange,
   onImprovementChange,
   onSubmit,
   onUsefulPartChange,
 }: {
   improvement: string;
+  email: string;
   isSaving: boolean;
   isSent: boolean;
   statusMessage: string;
   usefulPart: UsefulPart;
   onDismiss: () => void;
+  onEmailChange: (value: string) => void;
   onImprovementChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onUsefulPartChange: (value: UsefulPart) => void;
@@ -516,6 +534,25 @@ function FeedbackWidget({
             maxLength={500}
             placeholder="Optional: tell us what would make the coaching more useful..."
             className="mt-3 min-h-32 text-sm leading-6"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="feedback-email" className="text-sm font-medium text-slate-200">
+            Email (optional)
+          </label>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Leave your email if you&apos;d like us to follow up.
+          </p>
+          <input
+            id="feedback-email"
+            value={email}
+            onChange={(event) => onEmailChange(event.target.value.slice(0, 120))}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="mt-3 min-h-11 w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-primary/55 focus:outline-none"
           />
         </div>
 
@@ -620,6 +657,10 @@ function formatFeedbackInsertError(payload: {
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function isValidFeedbackEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function wait(duration: number) {
