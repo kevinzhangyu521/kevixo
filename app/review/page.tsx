@@ -22,8 +22,6 @@ import {
 } from "@/lib/player-memory";
 import {
   buildReviewFeedbackEntry,
-  createReviewFeedbackStore,
-  saveReviewFeedback,
   usefulPartOptions,
   type UsefulPart,
 } from "@/lib/review-feedback";
@@ -309,10 +307,16 @@ export default function ReviewPage() {
         ok: boolean;
         feedback?: typeof feedbackEntry;
         error?: string;
+        supabaseError?: {
+          code?: string;
+          message?: string;
+          details?: string;
+          hint?: string;
+        };
       };
 
       if (!response.ok || !payload.ok || !payload.feedback) {
-        throw new Error(payload.error ?? "Feedback database is unavailable.");
+        throw new Error(formatFeedbackInsertError(payload));
       }
 
       trackFeedback({
@@ -324,12 +328,13 @@ export default function ReviewPage() {
       setIsFeedbackSent(true);
       setFeedbackStatusMessage("Feedback sent. Thank you.");
     } catch (caughtError) {
-      saveReviewFeedback(createReviewFeedbackStore(window.localStorage), feedbackEntry);
-      console.warn("Kevixo feedback saved locally as fallback", caughtError);
+      console.error("Kevixo feedback insert failed", caughtError);
       setFeedbackImprovement(feedbackEntry.improvement);
       setIsFeedbackSent(false);
       setFeedbackStatusMessage(
-        "Feedback saved locally. We could not reach the feedback database yet.",
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Insert failed: Feedback database is unavailable.",
       );
     } finally {
       setIsFeedbackSaving(false);
@@ -647,6 +652,31 @@ function getResponseError(payload: unknown, fallback: string) {
   }
 
   return fallback;
+}
+
+function formatFeedbackInsertError(payload: {
+  error?: string;
+  supabaseError?: {
+    code?: string;
+    message?: string;
+    details?: string;
+    hint?: string;
+  };
+}) {
+  const supabaseError = payload.supabaseError;
+
+  if (!supabaseError) {
+    return payload.error ?? "Insert failed: Feedback database is unavailable.";
+  }
+
+  return [
+    `Insert failed: ${supabaseError.message ?? payload.error ?? "Feedback database is unavailable."}`,
+    supabaseError.code ? `Code: ${supabaseError.code}` : "",
+    supabaseError.details ? `Details: ${supabaseError.details}` : "",
+    supabaseError.hint ? `Hint: ${supabaseError.hint}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function wait(duration: number) {

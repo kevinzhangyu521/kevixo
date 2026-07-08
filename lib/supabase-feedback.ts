@@ -26,6 +26,23 @@ export type ReviewFeedbackListResult = {
   total: number;
 };
 
+export type SupabaseFeedbackErrorDetails = {
+  code?: string;
+  message: string;
+  details?: string;
+  hint?: string;
+};
+
+export class SupabaseFeedbackError extends Error {
+  details: SupabaseFeedbackErrorDetails;
+
+  constructor(details: SupabaseFeedbackErrorDetails) {
+    super(formatSupabaseFeedbackError(details));
+    this.name = "SupabaseFeedbackError";
+    this.details = details;
+  }
+}
+
 const tableName = "review_feedback";
 
 function getSupabaseUrl() {
@@ -127,10 +144,28 @@ export async function insertReviewFeedback(entry: ReviewFeedbackEntry) {
     .single<ReviewFeedbackRow>();
 
   if (error) {
-    throw new Error(error.message);
+    const details = getSupabaseErrorDetails(error);
+    console.error("[Kevixo feedback insert failed]", details);
+    throw new SupabaseFeedbackError(details);
   }
 
   return fromRow(data);
+}
+
+export function getSupabaseFeedbackErrorDetails(error: unknown) {
+  if (error instanceof SupabaseFeedbackError) {
+    return error.details;
+  }
+
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+    };
+  }
+
+  return {
+    message: "Unknown Supabase feedback error.",
+  };
 }
 
 export async function listReviewFeedback({
@@ -291,4 +326,37 @@ function applySearch(
       `status.ilike.${pattern}`,
     ].join(","),
   );
+}
+
+function getSupabaseErrorDetails(error: unknown): SupabaseFeedbackErrorDetails {
+  if (typeof error !== "object" || error === null) {
+    return {
+      message: "Unknown Supabase feedback error.",
+    };
+  }
+
+  const value = error as {
+    code?: unknown;
+    message?: unknown;
+    details?: unknown;
+    hint?: unknown;
+  };
+
+  return {
+    code: typeof value.code === "string" ? value.code : undefined,
+    message: typeof value.message === "string" ? value.message : "Supabase request failed.",
+    details: typeof value.details === "string" ? value.details : undefined,
+    hint: typeof value.hint === "string" ? value.hint : undefined,
+  };
+}
+
+function formatSupabaseFeedbackError(details: SupabaseFeedbackErrorDetails) {
+  return [
+    details.message,
+    details.code ? `code: ${details.code}` : "",
+    details.details ? `details: ${details.details}` : "",
+    details.hint ? `hint: ${details.hint}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
 }

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { insertReviewFeedback } from "@/lib/supabase-feedback";
+import {
+  getSupabaseFeedbackErrorDetails,
+  insertReviewFeedback,
+} from "@/lib/supabase-feedback";
 
 export async function POST(request: Request) {
   try {
@@ -8,13 +11,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, feedback });
   } catch (error) {
+    const supabaseError = getSupabaseFeedbackErrorDetails(error);
+
     return NextResponse.json(
       {
         ok: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Kevixo could not save this feedback right now.",
+        error: `Insert failed: ${supabaseError.message}`,
+        supabaseError,
       },
       { status: 500 },
     );
