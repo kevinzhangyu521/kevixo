@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -193,6 +193,39 @@ export default function ReviewPage() {
     "No account required. Feedback helps improve Kevixo.",
   );
 
+  const loadStoredReviewFromServer = useCallback(async (reviewId: string) => {
+    try {
+      const response = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}`);
+      const payload = (await response.json()) as {
+        ok: boolean;
+        review?: {
+          reviewId: string;
+          createdAt: string;
+          handHistory: string;
+          report: CoachingReport;
+        };
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.review) {
+        throw new Error(payload.error ?? "Review not available.");
+      }
+
+      setHandHistory(payload.review.handHistory);
+      setSelectedDemoId("");
+      setReport(payload.review.report);
+      setReviewLookupMessage("");
+      saveStoredReview(window.localStorage, {
+        reviewId: payload.review.reviewId,
+        createdAt: payload.review.createdAt,
+        handHistory: payload.review.handHistory,
+        report: payload.review.report,
+      });
+    } catch {
+      setReviewLookupMessage("Review not available.");
+    }
+  }, []);
+
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       setMemoryReviews(createPlayerMemory(window.localStorage).read());
@@ -208,7 +241,8 @@ export default function ReviewPage() {
           setReport(storedReview.report);
           setReviewLookupMessage("");
         } else {
-          setReviewLookupMessage("Review not available.");
+          setReviewLookupMessage("Loading review...");
+          void loadStoredReviewFromServer(reviewId);
         }
       }
 
@@ -219,7 +253,7 @@ export default function ReviewPage() {
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, []);
+  }, [loadStoredReviewFromServer]);
 
   useEffect(() => {
     if (!isLoading) {
