@@ -332,7 +332,6 @@ function toInsertRow(entry: ReviewFeedbackEntry) {
     review_id: entry.reviewId ?? null,
     email: entry.email ?? null,
     source_page: entry.sourcePage ?? "/review",
-    admin_note: entry.adminNote ?? null,
   };
 }
 
