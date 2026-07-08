@@ -293,6 +293,7 @@ export default function ReviewPage() {
       improvement: feedbackImprovement,
       grade: report.grade,
       browser: window.navigator.userAgent,
+      userAgent: window.navigator.userAgent,
       sourcePage: "/review",
     });
 

@@ -136,6 +136,34 @@ export default function FeedbackAdminPage() {
     }
   }
 
+  async function saveAdminNote(id: string, adminNote: string) {
+    if (!adminKey) {
+      return;
+    }
+
+    setAdminError("");
+
+    try {
+      const response = await fetch("/api/admin/feedback", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-passcode": adminKey,
+        },
+        body: JSON.stringify({ id, adminNote }),
+      });
+      const payload = (await response.json()) as { ok: boolean; error?: string };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Admin note could not be saved.");
+      }
+
+      await loadFeedback();
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "Admin note could not be saved.");
+    }
+  }
+
   async function deleteSpam(id: string) {
     if (!adminKey) {
       return;
@@ -236,6 +264,7 @@ export default function FeedbackAdminPage() {
                   entry={entry}
                   onDeleteSpam={deleteSpam}
                   onMarkResolved={markResolved}
+                  onSaveAdminNote={saveAdminNote}
                 />
               ))}
               {feedback.length === 0 ? (
@@ -314,11 +343,23 @@ function FeedbackRow({
   entry,
   onDeleteSpam,
   onMarkResolved,
+  onSaveAdminNote,
 }: {
   entry: ReviewFeedbackEntry;
   onDeleteSpam: (id: string) => void;
   onMarkResolved: (id: string) => void;
+  onSaveAdminNote: (id: string, adminNote: string) => void;
 }) {
+  const [adminNote, setAdminNote] = useState(entry.adminNote ?? "");
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setAdminNote(entry.adminNote ?? "");
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [entry.adminNote]);
+
   return (
     <article className="rounded-xl border border-slate-800 bg-slate-950/48 p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -354,8 +395,27 @@ function FeedbackRow({
         <FeedbackMeta label="Grade" value={entry.grade} />
         <FeedbackMeta label="Review ID" value={entry.reviewId ?? "Not stored"} />
         <FeedbackMeta label="Email" value={entry.email ?? "Not stored"} />
-        <FeedbackMeta label="Browser" value={entry.browser ?? "Not stored"} />
+        <FeedbackMeta label="User Agent" value={entry.userAgent ?? entry.browser ?? "Not stored"} />
       </dl>
+
+      <div className="mt-4 grid gap-3 border-t border-slate-800 pt-4 md:grid-cols-[1fr_auto] md:items-end">
+        <label className="grid gap-2 text-sm font-medium text-slate-200">
+          Admin note
+          <input
+            value={adminNote}
+            onChange={(event) => setAdminNote(event.target.value.slice(0, 500))}
+            placeholder="Add an internal note..."
+            className="min-h-11 rounded-xl border border-slate-800 bg-slate-950/70 px-4 text-slate-100 placeholder:text-slate-600"
+          />
+        </label>
+        <Button
+          variant="secondary"
+          disabled={adminNote === (entry.adminNote ?? "")}
+          onClick={() => onSaveAdminNote(entry.id, adminNote)}
+        >
+          Save Note
+        </Button>
+      </div>
     </article>
   );
 }

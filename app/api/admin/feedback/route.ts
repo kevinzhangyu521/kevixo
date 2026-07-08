@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   deleteReviewFeedbackFromSupabase,
   listReviewFeedback,
-  resolveReviewFeedback,
+  updateReviewFeedback,
 } from "@/lib/supabase-feedback";
 import type { ReviewFeedbackStatus } from "@/lib/review-feedback";
 
@@ -42,13 +42,28 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const payload = (await request.json()) as { id?: string; status?: ReviewFeedbackStatus };
+    const payload = (await request.json()) as {
+      id?: string;
+      status?: ReviewFeedbackStatus;
+      adminNote?: string;
+    };
 
-    if (!payload.id || payload.status !== "resolved") {
+    if (!payload.id) {
       return NextResponse.json({ ok: false, error: "Invalid feedback update." }, { status: 400 });
     }
 
-    const feedback = await resolveReviewFeedback(payload.id);
+    if (
+      typeof payload.adminNote !== "string" &&
+      payload.status !== "open" &&
+      payload.status !== "resolved"
+    ) {
+      return NextResponse.json({ ok: false, error: "Invalid feedback update." }, { status: 400 });
+    }
+
+    const feedback = await updateReviewFeedback(payload.id, {
+      status: payload.status,
+      adminNote: payload.adminNote,
+    });
 
     return NextResponse.json({ ok: true, feedback });
   } catch (error) {

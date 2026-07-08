@@ -26,7 +26,9 @@ export type ReviewFeedbackEntry = {
   email?: string;
   reviewId?: string;
   browser?: string;
+  userAgent?: string;
   sourcePage?: string;
+  adminNote?: string;
 };
 
 export type ReviewFeedbackStore = {
@@ -95,6 +97,7 @@ export function buildReviewFeedbackEntry({
   browser,
   email,
   reviewId,
+  userAgent,
   sourcePage = "/review",
 }: {
   usefulPart: UsefulPart;
@@ -103,6 +106,7 @@ export function buildReviewFeedbackEntry({
   browser?: string;
   email?: string;
   reviewId?: string;
+  userAgent?: string;
   sourcePage?: string;
 }): ReviewFeedbackEntry {
   const createdAt = new Date().toISOString();
@@ -120,6 +124,7 @@ export function buildReviewFeedbackEntry({
     browser,
     email,
     reviewId,
+    userAgent,
     sourcePage,
   };
 }
@@ -149,6 +154,8 @@ export function isReviewFeedbackEntry(value: unknown): value is ReviewFeedbackEn
     entry.createdAt = typeof entry.createdAt === "string" ? entry.createdAt : entry.date;
     entry.status = entry.status === "resolved" ? "resolved" : "open";
     entry.sourcePage = typeof entry.sourcePage === "string" ? entry.sourcePage : "/review";
+    entry.userAgent = typeof entry.userAgent === "string" ? entry.userAgent : entry.browser;
+    entry.adminNote = typeof entry.adminNote === "string" ? entry.adminNote : undefined;
     return entry.improvement.length <= maxImprovementLength;
   }
 

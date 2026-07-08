@@ -14,9 +14,11 @@ type ReviewFeedbackRow = {
   improvement: string;
   grade: string;
   browser: string | null;
+  user_agent: string | null;
   review_id: string | null;
   email: string | null;
   source_page: string;
+  admin_note: string | null;
 };
 
 export type ReviewFeedbackListResult = {
@@ -125,10 +127,33 @@ export async function listReviewFeedback({
 }
 
 export async function resolveReviewFeedback(id: string) {
+  return updateReviewFeedback(id, { status: "resolved" });
+}
+
+export async function updateReviewFeedback(
+  id: string,
+  updates: {
+    status?: ReviewFeedbackStatus;
+    adminNote?: string;
+  },
+) {
   const supabase = getFeedbackAdminClient();
+  const updatePayload: {
+    status?: ReviewFeedbackStatus;
+    admin_note?: string;
+  } = {};
+
+  if (updates.status) {
+    updatePayload.status = updates.status;
+  }
+
+  if (typeof updates.adminNote === "string") {
+    updatePayload.admin_note = updates.adminNote.slice(0, 500);
+  }
+
   const { data, error } = await supabase
     .from(tableName)
-    .update({ status: "resolved" })
+    .update(updatePayload)
     .eq("id", id)
     .select()
     .single<ReviewFeedbackRow>();
@@ -167,9 +192,11 @@ function toRow(entry: ReviewFeedbackEntry) {
     improvement: entry.improvement,
     grade: entry.grade,
     browser: entry.browser ?? null,
+    user_agent: entry.userAgent ?? entry.browser ?? null,
     review_id: entry.reviewId ?? null,
     email: entry.email ?? null,
     source_page: entry.sourcePage ?? "/review",
+    admin_note: entry.adminNote ?? null,
   };
 }
 
@@ -184,9 +211,11 @@ function fromRow(row: ReviewFeedbackRow): ReviewFeedbackEntry {
     improvement: row.improvement,
     grade: row.grade,
     browser: row.browser ?? undefined,
+    userAgent: row.user_agent ?? undefined,
     reviewId: row.review_id ?? undefined,
     email: row.email ?? undefined,
     sourcePage: row.source_page,
+    adminNote: row.admin_note ?? undefined,
   };
 }
 
@@ -208,9 +237,11 @@ function applySearch(
       `useful_part.ilike.${pattern}`,
       `grade.ilike.${pattern}`,
       `browser.ilike.${pattern}`,
+      `user_agent.ilike.${pattern}`,
       `review_id.ilike.${pattern}`,
       `email.ilike.${pattern}`,
       `source_page.ilike.${pattern}`,
+      `admin_note.ilike.${pattern}`,
       `status.ilike.${pattern}`,
     ].join(","),
   );

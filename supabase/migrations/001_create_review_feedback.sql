@@ -9,10 +9,16 @@ create table if not exists public.review_feedback (
   improvement text not null default '',
   grade text not null,
   browser text,
+  user_agent text,
   review_id text,
   email text,
-  source_page text not null default '/review'
+  source_page text not null default '/review',
+  admin_note text
 );
+
+alter table public.review_feedback
+  add column if not exists user_agent text,
+  add column if not exists admin_note text;
 
 create index if not exists review_feedback_created_at_idx
   on public.review_feedback (created_at desc);
@@ -34,6 +40,7 @@ create policy "Allow anonymous review feedback inserts"
   with check (
     status = 'open'
     and source_page = '/review'
+    and admin_note is null
     and char_length(coalesce(message, '')) <= 500
     and char_length(coalesce(improvement, '')) <= 500
   );
