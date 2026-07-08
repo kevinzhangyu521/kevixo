@@ -166,9 +166,11 @@ function logSupabaseRequestUrl(operation: string, supabaseUrl: string) {
 export async function insertReviewFeedback(entry: ReviewFeedbackEntry) {
   const normalizedEntry = normalizeFeedbackEntry(entry);
   const supabase = getFeedbackInsertClient();
+  const insertPayload = toInsertRow(normalizedEntry);
+  logFeedbackInsertPayload(insertPayload);
   const { data, error } = await supabase
     .from(tableName)
-    .insert(toRow(normalizedEntry))
+    .insert(insertPayload)
     .select()
     .single<ReviewFeedbackRow>();
 
@@ -318,10 +320,8 @@ function normalizeFeedbackEntry(entry: ReviewFeedbackEntry) {
   return entry;
 }
 
-function toRow(entry: ReviewFeedbackEntry) {
+function toInsertRow(entry: ReviewFeedbackEntry) {
   return {
-    id: entry.id,
-    created_at: entry.createdAt,
     status: entry.status,
     useful_part: entry.usefulPart,
     message: entry.message,
@@ -334,6 +334,14 @@ function toRow(entry: ReviewFeedbackEntry) {
     source_page: entry.sourcePage ?? "/review",
     admin_note: entry.adminNote ?? null,
   };
+}
+
+function logFeedbackInsertPayload(payload: ReturnType<typeof toInsertRow>) {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  console.info("[Kevixo feedback insert payload]", payload);
 }
 
 function fromRow(row: ReviewFeedbackRow): ReviewFeedbackEntry {
