@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -323,8 +324,7 @@ export default function ReviewPage() {
                 <div>
                   <CardTitle>Try Demo Hand</CardTitle>
                   <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Start instantly with a realistic poker spot. No PokerStars or GGPoker
-                    account required.
+                    Start instantly with a realistic poker spot. No platform account required.
                   </p>
                 </div>
                 <span className="hidden rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary sm:inline-flex">
@@ -383,7 +383,7 @@ export default function ReviewPage() {
               id="hand-history"
               value={handHistory}
               onChange={(event) => setHandHistory(event.target.value)}
-              placeholder="Paste your PokerStars or GGPoker hand history here..."
+              placeholder="Paste a complete hand history here..."
               aria-describedby={error ? "review-error" : "character-counter"}
               className="mt-3 min-h-[260px]"
             />
@@ -420,7 +420,7 @@ export default function ReviewPage() {
         </Card>
 
         {isLoading ? <LoadingState activeStep={activeStep} /> : null}
-        {error ? <ErrorState message={error} /> : null}
+        {error ? <HandCompletionAssistant handHistory={handHistory} /> : null}
         {report ? <ReportCards report={report} /> : null}
         {report && !isFeedbackDismissed ? (
           <FeedbackWidget
@@ -644,15 +644,102 @@ function LoadingState({ activeStep }: { activeStep: number }) {
   );
 }
 
-function ErrorState({ message }: { message: string }) {
+function HandCompletionAssistant({ handHistory }: { handHistory: string }) {
+  const missingItems = getMissingHandDetails(handHistory);
+
   return (
-    <Card className="fade-in mt-8 border-red-500/25 bg-red-950/10">
-      <CardTitle className="text-red-300">Review blocked</CardTitle>
-      <p id="review-error" className="mt-3 text-base leading-7 text-red-100" role="alert">
-        {message}
-      </p>
+    <Card className="fade-in mt-8 border-primary/25 bg-primary/5" id="review-error">
+      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <CardTitle>Let&apos;s complete this hand</CardTitle>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-200" role="status">
+            Kevixo needs a little more hand detail before it can give useful coaching.
+            Add the missing pieces below and run the review again.
+          </p>
+        </div>
+        <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          Platform-agnostic import
+        </span>
+      </div>
+
+      <div className="mt-6 grid gap-3 md:grid-cols-2">
+        {missingItems.map((item) => (
+          <div
+            key={item}
+            className="rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-sm leading-6 text-slate-200"
+          >
+            <span className="mr-2 text-primary">Add</span>
+            {item}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-slate-800 bg-slate-950/48 p-4">
+          <p className="text-sm font-semibold text-slate-50">Paste Hand History</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Works with complete text exports from any supported structure.
+          </p>
+        </div>
+        <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/32 p-4 opacity-80">
+          <p className="text-sm font-semibold text-slate-50">Upload Screenshot</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Coming Soon</p>
+        </div>
+        <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/32 p-4 opacity-80">
+          <p className="text-sm font-semibold text-slate-50">Manual Hand Builder</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Coming Soon</p>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm leading-6 text-slate-500">
+          You can keep editing this hand on the page. Nothing was rejected.
+        </p>
+        <Button asChild variant="secondary">
+          <Link href="/import">Open Import Options</Link>
+        </Button>
+      </div>
     </Card>
   );
+}
+
+function getMissingHandDetails(handHistory: string) {
+  const normalized = handHistory.toLowerCase();
+  const missingItems: string[] = [];
+
+  if (!/\b(seat|hero|villain|button|small blind|big blind|sb|bb)\b/i.test(handHistory)) {
+    missingItems.push("player positions or blinds");
+  }
+
+  if (!/\b(dealt to|hero cards?|hole cards?|[AKQJT2-9][cdhs]\s+[AKQJT2-9][cdhs])\b/i.test(handHistory)) {
+    missingItems.push("hero hole cards");
+  }
+
+  if (!normalized.includes("flop")) {
+    missingItems.push("flop cards");
+  }
+
+  if (!normalized.includes("turn")) {
+    missingItems.push("turn card");
+  }
+
+  if (!normalized.includes("river")) {
+    missingItems.push("river card or final street");
+  }
+
+  if (!/\b(bet|call|raise|fold|check|posts?)\b/i.test(handHistory)) {
+    missingItems.push("betting actions and sizes");
+  }
+
+  if (missingItems.length === 0) {
+    return [
+      "the full action before and after the decision point",
+      "stacks, blinds, and board cards if they were omitted",
+      "the final action you want Kevixo to review",
+    ];
+  }
+
+  return missingItems;
 }
 
 function ReportCards({ report }: { report: CoachingReport }) {
