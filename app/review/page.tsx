@@ -12,6 +12,7 @@ import {
   trackFeedback,
   trackReviewCompleted,
 } from "@/lib/analytics";
+import { demoHands } from "@/lib/demo-hands";
 import { readImportedHandModel } from "@/lib/hand-import";
 import {
   buildMemoryEntry,
@@ -38,136 +39,6 @@ const loadingSteps = [
 ];
 
 const minimumLoadingMs = 3200;
-
-const demoHands = [
-  {
-    id: "river-bluff-catch",
-    title: "River Bluff Catch",
-    spot: "CO vs BTN",
-    detail: "Top pair faces a polar river bet.",
-    hand: `PokerStars Hand #248190742233: Hold'em No Limit ($0.25/$0.50 USD)
-Table 'Kevixo' 6-max Seat #3 is the button
-Seat 1: Villain ($52.40)
-Seat 3: Hero ($50.00)
-Hero posts small blind $0.25
-Villain posts big blind $0.50
-*** HOLE CARDS ***
-Dealt to Hero [As Qs]
-Hero raises to $1.25
-Villain calls $0.75
-*** FLOP *** [Qh 8s 4d]
-Hero bets $1.50
-Villain calls $1.50
-*** TURN *** [Qh 8s 4d] [9s]
-Hero bets $4.50
-Villain calls $4.50
-*** RIVER *** [Qh 8s 4d 9s] [2c]
-Hero checks
-Villain bets $16.00
-Hero calls $16.00`,
-  },
-  {
-    id: "missed-cbet",
-    title: "Missed C-Bet",
-    spot: "BTN vs BB",
-    detail: "Overcards and backdoors in position.",
-    hand: `GGPoker Hand #90211844: Hold'em No Limit ($0.10/$0.25 USD)
-Table 'Orion' 6-max Seat #5 is the button
-Seat 2: Villain ($31.20)
-Seat 5: Hero ($25.00)
-Villain posts big blind $0.25
-*** HOLE CARDS ***
-Dealt to Hero [Ah Js]
-Hero raises to $0.60
-Villain calls $0.35
-*** FLOP *** [Kd 7s 3h]
-Villain checks
-Hero checks
-*** TURN *** [Kd 7s 3h] [Ts]
-Villain bets $0.95
-Hero calls $0.95
-*** RIVER *** [Kd 7s 3h Ts] [2c]
-Villain bets $2.75
-Hero folds`,
-  },
-  {
-    id: "turn-barrel",
-    title: "Turn Barrel",
-    spot: "SB vs BB",
-    detail: "Strong draw chooses a big turn size.",
-    hand: `PokerStars Hand #248190742991: Hold'em No Limit ($0.50/$1.00 USD)
-Table 'North' 6-max Seat #1 is the small blind
-Seat 1: Hero ($104.00)
-Seat 2: Villain ($98.50)
-Hero posts small blind $0.50
-Villain posts big blind $1.00
-*** HOLE CARDS ***
-Dealt to Hero [Qs Js]
-Hero raises to $3.00
-Villain calls $2.00
-*** FLOP *** [Ts 8s 2d]
-Hero bets $2.50
-Villain calls $2.50
-*** TURN *** [Ts 8s 2d] [4c]
-Hero bets $11.00
-Villain calls $11.00
-*** RIVER *** [Ts 8s 2d 4c] [Ah]
-Hero bets $28.00
-Villain folds`,
-  },
-  {
-    id: "thin-value",
-    title: "Thin Value Bet",
-    spot: "HJ vs BB",
-    detail: "Second pair considers river value.",
-    hand: `GGPoker Hand #90211902: Hold'em No Limit ($0.25/$0.50 USD)
-Table 'Vega' 6-max Seat #4 is the hijack
-Seat 4: Hero ($50.00)
-Seat 6: Villain ($46.80)
-Villain posts big blind $0.50
-*** HOLE CARDS ***
-Dealt to Hero [Kc Qd]
-Hero raises to $1.10
-Villain calls $0.60
-*** FLOP *** [Kh 9c 5s]
-Villain checks
-Hero bets $1.25
-Villain calls $1.25
-*** TURN *** [Kh 9c 5s] [9d]
-Villain checks
-Hero checks
-*** RIVER *** [Kh 9c 5s 9d] [3s]
-Villain checks
-Hero bets $3.50
-Villain calls $3.50`,
-  },
-  {
-    id: "three-bet-pot",
-    title: "3-Bet Pot",
-    spot: "CO vs SB",
-    detail: "Overpair faces turn pressure.",
-    hand: `PokerStars Hand #248190743551: Hold'em No Limit ($1.00/$2.00 USD)
-Table 'Atlas' 6-max Seat #1 is the small blind
-Seat 1: Villain ($203.00)
-Seat 4: Hero ($200.00)
-Villain posts small blind $1.00
-Seat 2 posts big blind $2.00
-*** HOLE CARDS ***
-Dealt to Hero [Ad Ac]
-Hero raises to $5.00
-Villain raises to $18.00
-Hero calls $13.00
-*** FLOP *** [Jh 7d 4c]
-Villain bets $12.00
-Hero calls $12.00
-*** TURN *** [Jh 7d 4c] [Ts]
-Villain bets $42.00
-Hero calls $42.00
-*** RIVER *** [Jh 7d 4c Ts] [8s]
-Villain checks
-Hero checks`,
-  },
-];
 
 type AnalyzeResponse =
   | { ok: true; report: CoachingReport }
