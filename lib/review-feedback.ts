@@ -16,9 +16,15 @@ export type UsefulPart = (typeof usefulPartOptions)[number];
 export type ReviewFeedbackEntry = {
   id: string;
   date: string;
+  createdAt: string;
+  status: "open" | "resolved";
   usefulPart: UsefulPart;
   improvement: string;
+  message: string;
   grade: string;
+  email?: string;
+  reviewId?: string;
+  browser?: string;
 };
 
 export type ReviewFeedbackStore = {
@@ -66,21 +72,50 @@ export function saveReviewFeedback(
   return store.write([entry, ...store.read()]);
 }
 
+export function updateReviewFeedbackStatus(
+  store: ReviewFeedbackStore,
+  id: string,
+  status: ReviewFeedbackEntry["status"],
+) {
+  return store.write(
+    store.read().map((entry) => (entry.id === id ? { ...entry, status } : entry)),
+  );
+}
+
+export function deleteReviewFeedback(store: ReviewFeedbackStore, id: string) {
+  return store.write(store.read().filter((entry) => entry.id !== id));
+}
+
 export function buildReviewFeedbackEntry({
   usefulPart,
   improvement,
   grade,
+  browser,
+  email,
+  reviewId,
 }: {
   usefulPart: UsefulPart;
   improvement: string;
   grade: string;
+  browser?: string;
+  email?: string;
+  reviewId?: string;
 }): ReviewFeedbackEntry {
+  const createdAt = new Date().toISOString();
+  const message = improvement.trim().slice(0, maxImprovementLength);
+
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    date: new Date().toISOString(),
+    date: createdAt,
+    createdAt,
+    status: "open",
     usefulPart,
-    improvement: improvement.trim().slice(0, maxImprovementLength),
+    improvement: message,
+    message,
     grade,
+    browser,
+    email,
+    reviewId,
   };
 }
 
@@ -91,12 +126,27 @@ function isReviewFeedbackEntry(value: unknown): value is ReviewFeedbackEntry {
 
   const entry = value as ReviewFeedbackEntry;
 
-  return (
+  const improvement =
+    typeof entry.improvement === "string"
+      ? entry.improvement
+      : typeof entry.message === "string"
+        ? entry.message
+        : "";
+
+  if (
     typeof entry.id === "string" &&
     typeof entry.date === "string" &&
     usefulPartOptions.includes(entry.usefulPart) &&
-    typeof entry.improvement === "string" &&
-    entry.improvement.length <= maxImprovementLength &&
     typeof entry.grade === "string"
-  );
+  ) {
+    entry.improvement = improvement.slice(0, maxImprovementLength);
+    entry.message = entry.improvement;
+    entry.createdAt = typeof entry.createdAt === "string" ? entry.createdAt : entry.date;
+    entry.status = entry.status === "resolved" ? "resolved" : "open";
+    return entry.improvement.length <= maxImprovementLength;
+  }
+
+  return false;
 }
+
+export const reviewFeedbackStorageKey = feedbackKey;

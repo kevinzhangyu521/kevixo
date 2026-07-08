@@ -286,6 +286,7 @@ export default function ReviewPage() {
       usefulPart: feedbackUsefulPart,
       improvement: feedbackImprovement,
       grade: report.grade,
+      browser: window.navigator.userAgent,
     });
 
     saveReviewFeedback(createReviewFeedbackStore(window.localStorage), feedbackEntry);
