@@ -1,16 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { SiteHeader } from "@/components/site-header";
-import {
-  createReviewFeedbackStore,
-  deleteReviewFeedback,
-  reviewFeedbackStorageKey,
-  updateReviewFeedbackStatus,
-  type ReviewFeedbackEntry,
-} from "@/lib/review-feedback";
+import type { ReviewFeedbackEntry } from "@/lib/review-feedback";
 
 const pageSize = 6;
 const adminKey = process.env.NEXT_PUBLIC_ADMIN_FEEDBACK_KEY;
@@ -19,50 +13,87 @@ export default function FeedbackAdminPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [passcode, setPasscode] = useState("");
   const [feedback, setFeedback] = useState<ReviewFeedbackEntry[]>([]);
+  const [totalFeedback, setTotalFeedback] = useState(0);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ReviewFeedbackEntry["status"]>("all");
   const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [adminError, setAdminError] = useState("");
+
+  const loadFeedback = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isAuthorized || !adminKey) {
+        return;
+      }
+
+      setIsLoading(true);
+      setAdminError("");
+
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          pageSize: String(pageSize),
+          query,
+          status: statusFilter,
+        });
+        const response = await fetch(`/api/admin/feedback?${params.toString()}`, {
+          headers: {
+            "x-admin-passcode": adminKey,
+          },
+          signal,
+        });
+        const payload = (await response.json()) as {
+          ok: boolean;
+          feedback?: ReviewFeedbackEntry[];
+          total?: number;
+          error?: string;
+        };
+
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error ?? "Feedback could not be loaded.");
+        }
+
+        setFeedback(payload.feedback ?? []);
+        setTotalFeedback(payload.total ?? 0);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setAdminError(
+          error instanceof Error ? error.message : "Feedback could not be loaded.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isAuthorized, page, query, statusFilter],
+  );
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       if (window.sessionStorage.getItem("kevixo.feedbackAdminAuthorized") === "true") {
         setIsAuthorized(true);
-        setFeedback(createReviewFeedbackStore(window.localStorage).read());
       }
     });
 
     return () => window.cancelAnimationFrame(frameId);
   }, []);
 
-  const filteredFeedback = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return feedback.filter((entry) => {
-      const matchesStatus = statusFilter === "all" || entry.status === statusFilter;
-      const searchable = [
-        entry.message,
-        entry.improvement,
-        entry.usefulPart,
-        entry.grade,
-        entry.email,
-        entry.reviewId,
-        entry.browser,
-        entry.status,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
+  useEffect(() => {
+    const controller = new AbortController();
+    const frameId = window.requestAnimationFrame(() => {
+      void loadFeedback(controller.signal);
     });
-  }, [feedback, query, statusFilter]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredFeedback.length / pageSize));
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      controller.abort();
+    };
+  }, [loadFeedback]);
+
+  const pageCount = Math.max(1, Math.ceil(totalFeedback / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const pagedFeedback = filteredFeedback.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
 
   function handleAuthorize(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,21 +104,62 @@ export default function FeedbackAdminPage() {
 
     window.sessionStorage.setItem("kevixo.feedbackAdminAuthorized", "true");
     setIsAuthorized(true);
-    setFeedback(createReviewFeedbackStore(window.localStorage).read());
   }
 
-  function refreshFeedback() {
-    setFeedback(createReviewFeedbackStore(window.localStorage).read());
+  async function markResolved(id: string) {
+    if (!adminKey) {
+      return;
+    }
+
+    setAdminError("");
+
+    try {
+      const response = await fetch("/api/admin/feedback", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-passcode": adminKey,
+        },
+        body: JSON.stringify({ id, status: "resolved" }),
+      });
+      const payload = (await response.json()) as { ok: boolean; error?: string };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Feedback could not be resolved.");
+      }
+
+      await loadFeedback();
+    } catch (error) {
+      setAdminError(
+        error instanceof Error ? error.message : "Feedback could not be resolved.",
+      );
+    }
   }
 
-  function markResolved(id: string) {
-    updateReviewFeedbackStatus(createReviewFeedbackStore(window.localStorage), id, "resolved");
-    refreshFeedback();
-  }
+  async function deleteSpam(id: string) {
+    if (!adminKey) {
+      return;
+    }
 
-  function deleteSpam(id: string) {
-    deleteReviewFeedback(createReviewFeedbackStore(window.localStorage), id);
-    refreshFeedback();
+    setAdminError("");
+
+    try {
+      const response = await fetch(`/api/admin/feedback?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: {
+          "x-admin-passcode": adminKey,
+        },
+      });
+      const payload = (await response.json()) as { ok: boolean; error?: string };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "Feedback could not be deleted.");
+      }
+
+      await loadFeedback();
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "Feedback could not be deleted.");
+    }
   }
 
   return (
@@ -104,11 +176,11 @@ export default function FeedbackAdminPage() {
               Feedback
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
-              Local admin view for review feedback stored in this browser.
+              Central admin view for review feedback submitted from Kevixo.
             </p>
           </div>
           <span className="rounded-full border border-slate-800 bg-slate-950/48 px-3 py-1 text-xs font-semibold text-slate-400">
-            Storage key: {reviewFeedbackStorageKey}
+            Supabase: review_feedback
           </span>
         </div>
 
@@ -151,8 +223,14 @@ export default function FeedbackAdminPage() {
               </label>
             </div>
 
+            {adminError ? (
+              <div className="mt-5 rounded-xl border border-amber-500/25 bg-amber-950/20 p-4 text-sm leading-6 text-amber-100">
+                {adminError}
+              </div>
+            ) : null}
+
             <div className="mt-6 grid gap-4">
-              {pagedFeedback.map((entry) => (
+              {feedback.map((entry) => (
                 <FeedbackRow
                   key={entry.id}
                   entry={entry}
@@ -160,16 +238,16 @@ export default function FeedbackAdminPage() {
                   onMarkResolved={markResolved}
                 />
               ))}
-              {pagedFeedback.length === 0 ? (
+              {feedback.length === 0 ? (
                 <div className="rounded-xl border border-slate-800 bg-slate-950/48 p-6 text-sm leading-6 text-slate-400">
-                  No feedback matches this view.
+                  {isLoading ? "Loading feedback..." : "No feedback matches this view."}
                 </div>
               ) : null}
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-slate-500">
-                Showing {pagedFeedback.length} of {filteredFeedback.length} feedback items.
+                Showing {feedback.length} of {totalFeedback} feedback items.
               </p>
               <div className="flex gap-2">
                 <Button

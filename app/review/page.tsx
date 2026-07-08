@@ -188,6 +188,10 @@ export default function ReviewPage() {
   const [feedbackImprovement, setFeedbackImprovement] = useState("");
   const [isFeedbackDismissed, setIsFeedbackDismissed] = useState(false);
   const [isFeedbackSent, setIsFeedbackSent] = useState(false);
+  const [isFeedbackSaving, setIsFeedbackSaving] = useState(false);
+  const [feedbackStatusMessage, setFeedbackStatusMessage] = useState(
+    "No account required. Feedback helps improve Kevixo.",
+  );
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -235,6 +239,8 @@ export default function ReviewPage() {
     setFeedbackImprovement("");
     setIsFeedbackDismissed(false);
     setIsFeedbackSent(false);
+    setIsFeedbackSaving(false);
+    setFeedbackStatusMessage("No account required. Feedback helps improve Kevixo.");
     trackAnalyze();
 
     try {
@@ -275,10 +281,10 @@ export default function ReviewPage() {
     }
   }
 
-  function handleFeedbackSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleFeedbackSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!report) {
+    if (!report || isFeedbackSaving) {
       return;
     }
 
@@ -287,16 +293,46 @@ export default function ReviewPage() {
       improvement: feedbackImprovement,
       grade: report.grade,
       browser: window.navigator.userAgent,
+      sourcePage: "/review",
     });
 
-    saveReviewFeedback(createReviewFeedbackStore(window.localStorage), feedbackEntry);
-    trackFeedback({
-      usefulPart: feedbackEntry.usefulPart,
-      hasImprovementText: feedbackEntry.improvement.length > 0,
-    });
-    console.log("Kevixo review feedback", feedbackEntry);
-    setFeedbackImprovement(feedbackEntry.improvement);
-    setIsFeedbackSent(true);
+    setIsFeedbackSaving(true);
+
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(feedbackEntry),
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        feedback?: typeof feedbackEntry;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.feedback) {
+        throw new Error(payload.error ?? "Feedback database is unavailable.");
+      }
+
+      trackFeedback({
+        usefulPart: payload.feedback.usefulPart,
+        hasImprovementText: payload.feedback.improvement.length > 0,
+      });
+      console.log("Kevixo review feedback", payload.feedback);
+      setFeedbackImprovement(payload.feedback.improvement);
+      setIsFeedbackSent(true);
+      setFeedbackStatusMessage("Feedback sent. Thank you.");
+    } catch (caughtError) {
+      saveReviewFeedback(createReviewFeedbackStore(window.localStorage), feedbackEntry);
+      console.warn("Kevixo feedback saved locally as fallback", caughtError);
+      setFeedbackImprovement(feedbackEntry.improvement);
+      setIsFeedbackSent(false);
+      setFeedbackStatusMessage(
+        "Feedback saved locally. We could not reach the feedback database yet.",
+      );
+    } finally {
+      setIsFeedbackSaving(false);
+    }
   }
 
   return (
@@ -426,7 +462,9 @@ export default function ReviewPage() {
         {report && !isFeedbackDismissed ? (
           <FeedbackWidget
             improvement={feedbackImprovement}
+            isSaving={isFeedbackSaving}
             isSent={isFeedbackSent}
+            statusMessage={feedbackStatusMessage}
             usefulPart={feedbackUsefulPart}
             onDismiss={() => setIsFeedbackDismissed(true)}
             onImprovementChange={setFeedbackImprovement}
@@ -441,7 +479,9 @@ export default function ReviewPage() {
 
 function FeedbackWidget({
   improvement,
+  isSaving,
   isSent,
+  statusMessage,
   usefulPart,
   onDismiss,
   onImprovementChange,
@@ -449,7 +489,9 @@ function FeedbackWidget({
   onUsefulPartChange,
 }: {
   improvement: string;
+  isSaving: boolean;
   isSent: boolean;
+  statusMessage: string;
   usefulPart: UsefulPart;
   onDismiss: () => void;
   onImprovementChange: (value: string) => void;
@@ -529,13 +571,11 @@ function FeedbackWidget({
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button type="submit" className="min-w-40">
-            Send Feedback
+          <Button type="submit" className="min-w-40" disabled={isSaving || isSent}>
+            {isSaving ? "Sending..." : "Send Feedback"}
           </Button>
           <p className="text-sm text-slate-500" role="status" aria-live="polite">
-            {isSent
-              ? "Feedback saved locally. Thank you."
-              : "Stored locally for now. No account required."}
+            {statusMessage}
           </p>
         </div>
       </form>

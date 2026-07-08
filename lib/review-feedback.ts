@@ -12,12 +12,13 @@ export const usefulPartOptions = [
 ] as const;
 
 export type UsefulPart = (typeof usefulPartOptions)[number];
+export type ReviewFeedbackStatus = "open" | "resolved";
 
 export type ReviewFeedbackEntry = {
   id: string;
   date: string;
   createdAt: string;
-  status: "open" | "resolved";
+  status: ReviewFeedbackStatus;
   usefulPart: UsefulPart;
   improvement: string;
   message: string;
@@ -25,6 +26,7 @@ export type ReviewFeedbackEntry = {
   email?: string;
   reviewId?: string;
   browser?: string;
+  sourcePage?: string;
 };
 
 export type ReviewFeedbackStore = {
@@ -93,6 +95,7 @@ export function buildReviewFeedbackEntry({
   browser,
   email,
   reviewId,
+  sourcePage = "/review",
 }: {
   usefulPart: UsefulPart;
   improvement: string;
@@ -100,6 +103,7 @@ export function buildReviewFeedbackEntry({
   browser?: string;
   email?: string;
   reviewId?: string;
+  sourcePage?: string;
 }): ReviewFeedbackEntry {
   const createdAt = new Date().toISOString();
   const message = improvement.trim().slice(0, maxImprovementLength);
@@ -116,10 +120,11 @@ export function buildReviewFeedbackEntry({
     browser,
     email,
     reviewId,
+    sourcePage,
   };
 }
 
-function isReviewFeedbackEntry(value: unknown): value is ReviewFeedbackEntry {
+export function isReviewFeedbackEntry(value: unknown): value is ReviewFeedbackEntry {
   if (typeof value !== "object" || value === null) {
     return false;
   }
@@ -143,6 +148,7 @@ function isReviewFeedbackEntry(value: unknown): value is ReviewFeedbackEntry {
     entry.message = entry.improvement;
     entry.createdAt = typeof entry.createdAt === "string" ? entry.createdAt : entry.date;
     entry.status = entry.status === "resolved" ? "resolved" : "open";
+    entry.sourcePage = typeof entry.sourcePage === "string" ? entry.sourcePage : "/review";
     return entry.improvement.length <= maxImprovementLength;
   }
 

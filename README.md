@@ -42,6 +42,10 @@ after the client mounts. Neither blocks initial page rendering.
 ### Environment Variables
 
 - `NEXT_PUBLIC_GA_MEASUREMENT_ID`: Google Analytics 4 measurement ID.
+- `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon public key used for feedback inserts.
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key used only by server-side admin feedback routes.
+- `NEXT_PUBLIC_ADMIN_FEEDBACK_KEY`: passcode for `/admin/feedback`.
 
 ### Custom Events
 
@@ -55,3 +59,13 @@ Tracked events:
 - `followup_question_sent`
 
 Event helpers live in `lib/analytics.ts`.
+
+## Supabase Feedback
+
+Review feedback is stored in the `review_feedback` table. The migration lives at
+`supabase/migrations/001_create_review_feedback.sql`.
+
+Run the migration in Supabase SQL Editor before using the production feedback
+admin. Anonymous users can only insert feedback through RLS. Listing, resolving,
+and deleting feedback uses the server-side service role key through
+`/api/admin/feedback`.
