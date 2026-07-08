@@ -29,7 +29,7 @@ export type ReviewFeedbackListResult = {
 const tableName = "review_feedback";
 
 function getSupabaseUrl() {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return normalizeSupabaseProjectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
 }
 
 function getSupabaseAnonKey() {
@@ -48,6 +48,8 @@ function getFeedbackInsertClient() {
     throw new Error("Supabase public environment variables are not configured.");
   }
 
+  logSupabaseRequestUrl("feedback:insert", supabaseUrl);
+
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: false,
@@ -63,12 +65,56 @@ function getFeedbackAdminClient() {
     throw new Error("Supabase admin environment variables are not configured.");
   }
 
+  logSupabaseRequestUrl("feedback:admin", supabaseUrl);
+
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
     },
   });
+}
+
+function normalizeSupabaseProjectUrl(value: string | undefined) {
+  const rawUrl = value?.trim();
+
+  if (!rawUrl) {
+    return undefined;
+  }
+
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL must be a valid Supabase project URL like https://<project>.supabase.co.",
+    );
+  }
+
+  if (parsedUrl.protocol !== "https:" || !parsedUrl.hostname.endsWith(".supabase.co")) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL must be exactly https://<project>.supabase.co.",
+    );
+  }
+
+  if (parsedUrl.pathname !== "/" && process.env.NODE_ENV !== "production") {
+    console.warn(
+      `[Kevixo Supabase] NEXT_PUBLIC_SUPABASE_URL contains a path (${parsedUrl.pathname}). Using ${parsedUrl.origin}.`,
+    );
+  }
+
+  return parsedUrl.origin;
+}
+
+function logSupabaseRequestUrl(operation: string, supabaseUrl: string) {
+  if (process.env.NODE_ENV === "production") {
+    return;
+  }
+
+  console.info(
+    `[Kevixo Supabase] ${operation} request URL: ${new URL(`/rest/v1/${tableName}`, supabaseUrl).toString()}`,
+  );
 }
 
 export async function insertReviewFeedback(entry: ReviewFeedbackEntry) {
