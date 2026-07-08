@@ -57,12 +57,28 @@ function getSupabaseServiceRoleKey() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
 
+function getMissingSupabasePublicVariables() {
+  return [
+    getSupabaseUrl() ? "" : "NEXT_PUBLIC_SUPABASE_URL",
+    getSupabaseAnonKey() ? "" : "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ].filter(Boolean);
+}
+
+function getMissingSupabaseAdminVariables() {
+  return [
+    getSupabaseUrl() ? "" : "NEXT_PUBLIC_SUPABASE_URL",
+    getSupabaseServiceRoleKey() ? "" : "SUPABASE_SERVICE_ROLE_KEY",
+  ].filter(Boolean);
+}
+
 function getFeedbackInsertClient() {
   const supabaseUrl = getSupabaseUrl();
   const supabaseAnonKey = getSupabaseAnonKey();
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase public environment variables are not configured.");
+    throw new Error(
+      `Supabase public environment variables are not configured. Missing: ${getMissingSupabasePublicVariables().join(", ")}`,
+    );
   }
 
   logSupabaseRequestUrl("feedback:insert", supabaseUrl);
@@ -79,7 +95,9 @@ function getFeedbackAdminClient() {
   const serviceRoleKey = getSupabaseServiceRoleKey();
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Supabase admin environment variables are not configured.");
+    throw new Error(
+      `Supabase admin environment variables are not configured. Missing: ${getMissingSupabaseAdminVariables().join(", ")}`,
+    );
   }
 
   logSupabaseRequestUrl("feedback:admin", supabaseUrl);
