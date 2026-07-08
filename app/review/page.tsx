@@ -11,6 +11,7 @@ import {
   trackFeedback,
   trackReviewCompleted,
 } from "@/lib/analytics";
+import { readImportedHandModel } from "@/lib/hand-import";
 import {
   buildMemoryEntry,
   createPlayerMemory,
@@ -190,6 +191,12 @@ export default function ReviewPage() {
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       setMemoryReviews(createPlayerMemory(window.localStorage).read());
+      const importedHand = readImportedHandModel(window.localStorage);
+
+      if (importedHand) {
+        setHandHistory(importedHand);
+        setSelectedDemoId("");
+      }
     });
 
     return () => window.cancelAnimationFrame(frameId);
