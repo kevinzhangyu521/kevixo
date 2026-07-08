@@ -90,6 +90,7 @@ function testFindsRecentPatterns() {
 
 function testBuildsMemoryEntryFromReport() {
   const memoryEntry = buildMemoryEntry({
+    reviewId: "review-memory-source-id",
     grade: "B-",
     biggestMistake: "You called the large river bet without enough bluffs.",
     homework: "Take 5 minutes to review three river calls.",
@@ -97,6 +98,7 @@ function testBuildsMemoryEntryFromReport() {
     leak: "River overcalling",
   });
 
+  assert(memoryEntry.id === "review-memory-source-id", "Expected review id to be reused.");
   assert(memoryEntry.grade === "B-", "Expected grade to be saved.");
   assert(memoryEntry.leak === "River overcalling", "Expected leak to be saved.");
   assert(memoryEntry.tags.includes("river"), "Expected river tag from leak and mistake.");

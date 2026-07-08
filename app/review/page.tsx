@@ -25,6 +25,7 @@ import {
   usefulPartOptions,
   type UsefulPart,
 } from "@/lib/review-feedback";
+import { findStoredReview, saveStoredReview } from "@/lib/review-store";
 import type { CoachingReport } from "@/services/ai";
 
 const loadingSteps = [
@@ -182,6 +183,7 @@ export default function ReviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState("");
+  const [reviewLookupMessage, setReviewLookupMessage] = useState("");
   const [feedbackUsefulPart, setFeedbackUsefulPart] = useState<UsefulPart>("Biggest Mistake");
   const [feedbackImprovement, setFeedbackImprovement] = useState("");
   const [isFeedbackDismissed, setIsFeedbackDismissed] = useState(false);
@@ -195,8 +197,22 @@ export default function ReviewPage() {
     const frameId = window.requestAnimationFrame(() => {
       setMemoryReviews(createPlayerMemory(window.localStorage).read());
       const importedHand = readImportedHandModel(window.localStorage);
+      const reviewId = new URLSearchParams(window.location.search).get("reviewId");
 
-      if (importedHand) {
+      if (reviewId) {
+        const storedReview = findStoredReview(window.localStorage, reviewId);
+
+        if (storedReview) {
+          setHandHistory(storedReview.handHistory);
+          setSelectedDemoId("");
+          setReport(storedReview.report);
+          setReviewLookupMessage("");
+        } else {
+          setReviewLookupMessage("Review not available.");
+        }
+      }
+
+      if (!reviewId && importedHand) {
         setHandHistory(importedHand);
         setSelectedDemoId("");
       }
@@ -239,6 +255,7 @@ export default function ReviewPage() {
     setIsFeedbackSent(false);
     setIsFeedbackSaving(false);
     setFeedbackStatusMessage("No account required. Feedback helps improve Kevixo.");
+    setReviewLookupMessage("");
     trackAnalyze();
 
     try {
@@ -262,6 +279,12 @@ export default function ReviewPage() {
       }
 
       setReport(payload.report);
+      saveStoredReview(window.localStorage, {
+        reviewId: payload.report.reviewId,
+        createdAt: new Date().toISOString(),
+        handHistory,
+        report: payload.report,
+      });
       trackReviewCompleted(payload.report);
       const nextMemoryReviews = saveReviewToMemory(
         createPlayerMemory(window.localStorage),
@@ -290,6 +313,7 @@ export default function ReviewPage() {
       usefulPart: feedbackUsefulPart,
       improvement: feedbackImprovement,
       grade: report.grade,
+      reviewId: report.reviewId,
       browser: window.navigator.userAgent,
       userAgent: window.navigator.userAgent,
       sourcePage: "/review",
@@ -463,6 +487,7 @@ export default function ReviewPage() {
         </Card>
 
         {isLoading ? <LoadingState activeStep={activeStep} /> : null}
+        {reviewLookupMessage ? <ReviewUnavailable message={reviewLookupMessage} /> : null}
         {error ? <HandCompletionAssistant handHistory={handHistory} /> : null}
         {report ? <ReportCards report={report} /> : null}
         {report && !isFeedbackDismissed ? (
@@ -480,6 +505,17 @@ export default function ReviewPage() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+function ReviewUnavailable({ message }: { message: string }) {
+  return (
+    <Card className="fade-in mt-8 border-slate-800 bg-slate-950/48 p-5 md:p-6">
+      <CardTitle>{message}</CardTitle>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        This review may have been created in another browser or cleared from local storage.
+      </p>
+    </Card>
   );
 }
 

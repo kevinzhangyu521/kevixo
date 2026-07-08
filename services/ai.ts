@@ -5,6 +5,7 @@ import {
 } from "@/services/prompt";
 
 export type CoachingReport = {
+  reviewId: string;
   keyLesson: string;
   biggestMistake: string;
   betterDecision: string;
@@ -235,6 +236,7 @@ export async function answerFollowUpQuestion({
 
 function normalizeReport(value: Partial<CoachingReport>): CoachingReport {
   return {
+    reviewId: value.reviewId ?? crypto.randomUUID(),
     keyLesson:
       value.keyLesson ??
       "When a river bet is polarized, your first job is to count realistic bluffs. Do not pay off just because your hand looks strong.",
@@ -275,6 +277,7 @@ function getMockReport(handHistory: string): CoachingReport {
   const hasRiver = handHistory.toLowerCase().includes("river");
 
   return {
+    reviewId: crypto.randomUUID(),
     keyLesson:
       "Do not bluff-catch rivers on hand strength alone. Count villain's believable bluffs before you put in the call.",
     biggestMistake:

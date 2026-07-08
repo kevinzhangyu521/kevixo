@@ -21,6 +21,7 @@ export type PlayerMemory = {
 };
 
 export type ReviewMemorySource = {
+  reviewId: string;
   grade: string;
   biggestMistake: string;
   homework: string;
@@ -106,7 +107,7 @@ export function buildMemoryEntry(report: ReviewMemorySource): PlayerMemoryEntry 
   ].join(" ");
 
   return {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: report.reviewId,
     date: new Date().toISOString(),
     grade: report.grade,
     biggestMistake: report.biggestMistake,

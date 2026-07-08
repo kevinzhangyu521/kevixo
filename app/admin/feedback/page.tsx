@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { SiteHeader } from "@/components/site-header";
@@ -393,7 +394,7 @@ function FeedbackRow({
 
       <dl className="mt-4 grid gap-3 border-t border-slate-800 pt-4 text-sm md:grid-cols-4">
         <FeedbackMeta label="Grade" value={entry.grade} />
-        <FeedbackMeta label="Review ID" value={entry.reviewId ?? "Not stored"} />
+        <ReviewIdMeta reviewId={entry.reviewId} />
         <FeedbackMeta label="Email" value={entry.email ?? "Not stored"} />
         <FeedbackMeta label="User Agent" value={entry.userAgent ?? entry.browser ?? "Not stored"} />
       </dl>
@@ -417,6 +418,28 @@ function FeedbackRow({
         </Button>
       </div>
     </article>
+  );
+}
+
+function ReviewIdMeta({ reviewId }: { reviewId?: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+        Review ID
+      </dt>
+      <dd className="mt-1">
+        {reviewId ? (
+          <Link
+            href={`/review?reviewId=${encodeURIComponent(reviewId)}`}
+            className="inline-flex max-w-full rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition hover:border-primary/45 hover:bg-primary/15"
+          >
+            <span className="truncate">{reviewId}</span>
+          </Link>
+        ) : (
+          <span className="text-slate-300">Not stored</span>
+        )}
+      </dd>
+    </div>
   );
 }
 
