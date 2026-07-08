@@ -31,6 +31,17 @@ export type SupabaseFeedbackErrorDetails = {
   message: string;
   details?: string;
   hint?: string;
+  environment?: SupabaseEnvironmentDebug;
+};
+
+export type SupabaseEnvironmentDebug = {
+  expected: {
+    NEXT_PUBLIC_SUPABASE_URL: boolean;
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: boolean;
+    SUPABASE_SERVICE_ROLE_KEY: boolean;
+  };
+  suspiciousNames: string[];
+  availableSupabaseNames: string[];
 };
 
 export class SupabaseFeedbackError extends Error {
@@ -178,11 +189,33 @@ export function getSupabaseFeedbackErrorDetails(error: unknown) {
   if (error instanceof Error) {
     return {
       message: error.message,
+      environment: getSupabaseEnvironmentDebug(),
     };
   }
 
   return {
     message: "Unknown Supabase feedback error.",
+    environment: getSupabaseEnvironmentDebug(),
+  };
+}
+
+export function getSupabaseEnvironmentDebug(): SupabaseEnvironmentDebug {
+  const envNames = Object.keys(process.env).sort();
+
+  return {
+    expected: {
+      NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+      SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    },
+    suspiciousNames: envNames.filter((name) =>
+      [
+        "SUPABASE_ANON_KEY",
+        "NEXT_SUPABASE_ANON_KEY",
+        "PUBLIC_SUPABASE_ANON_KEY",
+      ].includes(name),
+    ),
+    availableSupabaseNames: envNames.filter((name) => name.includes("SUPABASE")),
   };
 }
 
@@ -365,6 +398,7 @@ function getSupabaseErrorDetails(error: unknown): SupabaseFeedbackErrorDetails {
     message: typeof value.message === "string" ? value.message : "Supabase request failed.",
     details: typeof value.details === "string" ? value.details : undefined,
     hint: typeof value.hint === "string" ? value.hint : undefined,
+    environment: getSupabaseEnvironmentDebug(),
   };
 }
 
