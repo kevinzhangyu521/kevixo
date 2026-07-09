@@ -31,6 +31,12 @@ export function SiteHeader({
       </Link>
       <div className="flex items-center gap-4">
         <Link
+          href="/poker-hand-analyzer"
+          className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 md:inline-flex"
+        >
+          Analyzer
+        </Link>
+        <Link
           href="/blog"
           className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 sm:inline-flex"
         >

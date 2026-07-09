@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { blogArticles, getBlogArticleUrl } from "@/lib/blog";
+import { getSeoLandingPageUrl, seoLandingPages } from "@/lib/seo-landing-pages";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
@@ -41,6 +42,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    ...seoLandingPages.map((page) => ({
+      url: getSeoLandingPageUrl(page.slug),
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    })),
     ...blogArticles.map((article) => ({
       url: getBlogArticleUrl(article.slug),
       lastModified: new Date(article.updatedAt),

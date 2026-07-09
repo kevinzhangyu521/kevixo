@@ -333,6 +333,11 @@ function BlogPreviewSection() {
 function Footer() {
   const footerLinks = [
     { label: "Blog", href: "/blog" },
+    { label: "Poker Hand Analyzer", href: "/poker-hand-analyzer" },
+    { label: "Hand History Review", href: "/hand-history-review" },
+    { label: "Poker Review Tool", href: "/poker-review-tool" },
+    { label: "GTO Poker Coach", href: "/gto-poker-coach" },
+    { label: "Poker Leak Finder", href: "/poker-leak-finder" },
     { label: "Privacy", href: "/privacy" },
     { label: "Terms", href: "/terms" },
     { label: "Contact", href: "mailto:hello@kevixo.com" },
