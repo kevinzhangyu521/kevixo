@@ -112,3 +112,21 @@ export function trackDemoSelected(demoId?: string) {
 export function trackQuestion() {
   trackEvent("followup_question_sent");
 }
+
+export function trackShareClicked(reviewId?: string) {
+  trackEvent("share_clicked", {
+    review_id: reviewId,
+  });
+}
+
+export function trackCopyLinkClicked(reviewId?: string) {
+  trackEvent("copy_link_clicked", {
+    review_id: reviewId,
+  });
+}
+
+export function trackImageDownloaded(reviewId?: string) {
+  trackEvent("image_downloaded", {
+    review_id: reviewId,
+  });
+}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { SiteHeader } from "@/components/site-header";
+import { ReviewShareCard } from "@/components/review-share-card";
 import {
   trackAnalyze,
   trackDemoSelected,
@@ -416,6 +417,7 @@ export default function ReviewPage() {
         {error ? (
           <HandCompletionAssistant handHistory={handHistory} onTryDemo={() => loadDemoHand()} />
         ) : null}
+        {report ? <ReviewShareCard report={report} /> : null}
         {report ? <ReportCards report={report} /> : null}
         {report && !isFeedbackDismissed ? (
           <FeedbackWidget
