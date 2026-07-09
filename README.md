@@ -69,3 +69,9 @@ Run the migration in Supabase SQL Editor before using the production feedback
 admin. Anonymous users can only insert feedback through RLS. Listing, resolving,
 and deleting feedback uses the server-side service role key through
 `/api/admin/feedback`.
+
+Full AI hand reviews are stored in the `hand_reviews` table. The migration lives
+at `supabase/migrations/002_create_hand_reviews.sql`. Anonymous users can insert
+completed reviews, but cannot read, update, or delete them. Admin review reads
+use the server-side service role key through `/api/admin/reviews/[reviewId]` and
+require the admin passcode header.

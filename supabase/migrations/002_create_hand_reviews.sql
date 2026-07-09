@@ -23,6 +23,9 @@ create index if not exists hand_reviews_created_at_idx
 alter table public.hand_reviews enable row level security;
 
 drop policy if exists "Allow anonymous hand review inserts" on public.hand_reviews;
+drop policy if exists "Allow anonymous hand review reads" on public.hand_reviews;
+drop policy if exists "Allow anonymous hand review updates" on public.hand_reviews;
+drop policy if exists "Allow anonymous hand review deletes" on public.hand_reviews;
 
 create policy "Allow anonymous hand review inserts"
   on public.hand_reviews
