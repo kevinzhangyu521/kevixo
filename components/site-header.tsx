@@ -29,12 +29,20 @@ export function SiteHeader({
         />
         <span className="sr-only">Kevixo</span>
       </Link>
-      <Link
-        href={ctaHref}
-        className="rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:text-slate-50 hover:shadow-[0_0_28px_rgba(59,201,255,0.12)]"
-      >
-        {ctaLabel}
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/blog"
+          className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 sm:inline-flex"
+        >
+          Blog
+        </Link>
+        <Link
+          href={ctaHref}
+          className="rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:text-slate-50 hover:shadow-[0_0_28px_rgba(59,201,255,0.12)]"
+        >
+          {ctaLabel}
+        </Link>
+      </div>
     </header>
   );
 }
