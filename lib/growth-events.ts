@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export type GrowthEventType =
   | "review_started"
+  | "review_completed"
   | "share_clicked"
   | "copy_link_clicked"
   | "image_downloaded";

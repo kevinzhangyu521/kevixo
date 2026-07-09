@@ -43,6 +43,12 @@ export function SiteHeader({
           My Reviews
         </Link>
         <Link
+          href="/profile"
+          className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 lg:inline-flex"
+        >
+          Profile
+        </Link>
+        <Link
           href="/blog"
           className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 sm:inline-flex"
         >

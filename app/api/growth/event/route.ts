@@ -3,6 +3,7 @@ import { insertGrowthEvent, type GrowthEventType } from "@/lib/growth-events";
 
 const allowedEvents: GrowthEventType[] = [
   "review_started",
+  "review_completed",
   "share_clicked",
   "copy_link_clicked",
   "image_downloaded",

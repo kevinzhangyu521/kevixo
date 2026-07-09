@@ -30,7 +30,13 @@ on public.growth_events
 for insert
 to anon
 with check (
-  event_type in ('review_started', 'share_clicked', 'copy_link_clicked', 'image_downloaded')
+  event_type in (
+    'review_started',
+    'review_completed',
+    'share_clicked',
+    'copy_link_clicked',
+    'image_downloaded'
+  )
 );
 
 drop policy if exists "Allow public email capture insert" on public.email_captures;

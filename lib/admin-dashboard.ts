@@ -43,6 +43,9 @@ export type FounderDashboardData = {
     shareRate: number;
     emailsCollected: number;
     returningVisitors: number;
+    returningUsers: number;
+    reviewsPerUser: number;
+    averageReviewsPerPlayer: number;
     averageGrade: string;
     averageConfidence: number;
   };
@@ -130,6 +133,9 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
   const usefulParts = buildUsefulPartBreakdown(feedbackRows);
   const browserBreakdown = buildBrowserBreakdown([...reviewRows, ...feedbackRows]);
   const deviceBreakdown = buildDeviceBreakdown([...reviewRows, ...feedbackRows]);
+  const returningUsers = countReturningUsers(growthRows);
+  const reviewsPerUser = reviewsPerVisitor(growthRows, "review_started");
+  const averageReviewsPerPlayer = reviewsPerVisitor(growthRows, "review_completed");
 
   return {
     overview: {
@@ -147,6 +153,9 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
       ),
       emailsCollected,
       returningVisitors: countReturningVisitors(growthRows),
+      returningUsers,
+      reviewsPerUser,
+      averageReviewsPerPlayer,
       averageGrade: averageGrade(reviewRows),
       averageConfidence: Math.round(averageConfidence),
     },
@@ -459,6 +468,40 @@ function countReturningVisitors(rows: GrowthEventRow[]) {
   });
 
   return Array.from(visitorCounts.values()).filter((count) => count > 1).length;
+}
+
+function countReturningUsers(rows: GrowthEventRow[]) {
+  const completedReviewCounts = new Map<string, number>();
+
+  rows.forEach((row) => {
+    if (!row.visitor_id || row.event_type !== "review_completed") {
+      return;
+    }
+
+    completedReviewCounts.set(row.visitor_id, (completedReviewCounts.get(row.visitor_id) ?? 0) + 1);
+  });
+
+  return Array.from(completedReviewCounts.values()).filter((count) => count > 1).length;
+}
+
+function reviewsPerVisitor(rows: GrowthEventRow[], eventType: "review_started" | "review_completed") {
+  const visitorIds = new Set<string>();
+  let reviewCount = 0;
+
+  rows.forEach((row) => {
+    if (!row.visitor_id || row.event_type !== eventType) {
+      return;
+    }
+
+    visitorIds.add(row.visitor_id);
+    reviewCount += 1;
+  });
+
+  if (visitorIds.size === 0) {
+    return 0;
+  }
+
+  return Math.round((reviewCount / visitorIds.size) * 10) / 10;
 }
 
 function percentage(value: number, total: number) {

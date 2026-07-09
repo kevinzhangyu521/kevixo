@@ -212,6 +212,7 @@ export default function ReviewPage() {
         report: payload.report,
       });
       trackReviewCompleted(payload.report);
+      void saveGrowthEvent("review_completed", payload.report.reviewId);
       const nextMemoryReviews = saveReviewToMemory(
         createPlayerMemory(window.localStorage),
         buildMemoryEntry(payload.report),

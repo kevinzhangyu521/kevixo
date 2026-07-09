@@ -182,6 +182,9 @@ function OverviewCards({ dashboard }: { dashboard: FounderDashboardData }) {
     { label: "Share Rate", value: `${dashboard.overview.shareRate}%` },
     { label: "Emails Collected", value: dashboard.overview.emailsCollected },
     { label: "Returning Visitors", value: dashboard.overview.returningVisitors },
+    { label: "Returning Users", value: dashboard.overview.returningUsers },
+    { label: "Reviews per User", value: dashboard.overview.reviewsPerUser },
+    { label: "Average Reviews per Player", value: dashboard.overview.averageReviewsPerPlayer },
     { label: "Average Grade", value: dashboard.overview.averageGrade },
     { label: "Average Confidence", value: `${dashboard.overview.averageConfidence}%` },
   ];
