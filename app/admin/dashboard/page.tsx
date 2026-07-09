@@ -185,6 +185,12 @@ function OverviewCards({ dashboard }: { dashboard: FounderDashboardData }) {
     { label: "Returning Users", value: dashboard.overview.returningUsers },
     { label: "Reviews per User", value: dashboard.overview.reviewsPerUser },
     { label: "Average Reviews per Player", value: dashboard.overview.averageReviewsPerPlayer },
+    { label: "Weekly Active Players", value: dashboard.overview.weeklyActivePlayers },
+    { label: "Weekly Returning Players", value: dashboard.overview.weeklyReturningPlayers },
+    {
+      label: "Average Reviews per Active Player",
+      value: dashboard.overview.averageReviewsPerActivePlayer,
+    },
     { label: "Average Grade", value: dashboard.overview.averageGrade },
     { label: "Average Confidence", value: `${dashboard.overview.averageConfidence}%` },
   ];

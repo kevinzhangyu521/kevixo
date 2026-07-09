@@ -46,6 +46,9 @@ export type FounderDashboardData = {
     returningUsers: number;
     reviewsPerUser: number;
     averageReviewsPerPlayer: number;
+    weeklyActivePlayers: number;
+    weeklyReturningPlayers: number;
+    averageReviewsPerActivePlayer: number;
     averageGrade: string;
     averageConfidence: number;
   };
@@ -136,6 +139,8 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
   const returningUsers = countReturningUsers(growthRows);
   const reviewsPerUser = reviewsPerVisitor(growthRows, "review_started");
   const averageReviewsPerPlayer = reviewsPerVisitor(growthRows, "review_completed");
+  const weeklyGrowthRows = growthRows.filter((row) => new Date(row.created_at) >= new Date(weekStart));
+  const weeklyActivePlayers = countActivePlayers(weeklyGrowthRows);
 
   return {
     overview: {
@@ -156,6 +161,9 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
       returningUsers,
       reviewsPerUser,
       averageReviewsPerPlayer,
+      weeklyActivePlayers,
+      weeklyReturningPlayers: countReturningUsers(weeklyGrowthRows),
+      averageReviewsPerActivePlayer: reviewsPerActivePlayer(weeklyGrowthRows, weeklyActivePlayers),
       averageGrade: averageGrade(reviewRows),
       averageConfidence: Math.round(averageConfidence),
     },
@@ -502,6 +510,30 @@ function reviewsPerVisitor(rows: GrowthEventRow[], eventType: "review_started" |
   }
 
   return Math.round((reviewCount / visitorIds.size) * 10) / 10;
+}
+
+function countActivePlayers(rows: GrowthEventRow[]) {
+  const visitorIds = new Set<string>();
+
+  rows.forEach((row) => {
+    if (
+      row.visitor_id &&
+      (row.event_type === "review_started" || row.event_type === "review_completed")
+    ) {
+      visitorIds.add(row.visitor_id);
+    }
+  });
+
+  return visitorIds.size;
+}
+
+function reviewsPerActivePlayer(rows: GrowthEventRow[], activePlayers: number) {
+  if (activePlayers === 0) {
+    return 0;
+  }
+
+  const completedReviews = rows.filter((row) => row.event_type === "review_completed").length;
+  return Math.round((completedReviews / activePlayers) * 10) / 10;
 }
 
 function percentage(value: number, total: number) {

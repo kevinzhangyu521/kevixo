@@ -49,6 +49,12 @@ export function SiteHeader({
           Profile
         </Link>
         <Link
+          href="/progress"
+          className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 lg:inline-flex"
+        >
+          Progress
+        </Link>
+        <Link
           href="/blog"
           className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 sm:inline-flex"
         >
