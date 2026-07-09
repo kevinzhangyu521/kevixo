@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { AdminNav } from "@/components/admin-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { SiteHeader } from "@/components/site-header";
@@ -229,6 +230,8 @@ export default function FeedbackAdminPage() {
             </span>
           </div>
         </div>
+
+        <AdminNav active="feedback" />
 
         {!isAuthorized ? (
           <AdminGate
