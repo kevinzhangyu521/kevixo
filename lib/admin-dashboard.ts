@@ -49,6 +49,9 @@ export type FounderDashboardData = {
     weeklyActivePlayers: number;
     weeklyReturningPlayers: number;
     averageReviewsPerActivePlayer: number;
+    dailyChallengeAttempts: number;
+    dailyChallengeCompletionRate: number;
+    averageStreak: number;
     averageGrade: string;
     averageConfidence: number;
   };
@@ -141,6 +144,12 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
   const averageReviewsPerPlayer = reviewsPerVisitor(growthRows, "review_completed");
   const weeklyGrowthRows = growthRows.filter((row) => new Date(row.created_at) >= new Date(weekStart));
   const weeklyActivePlayers = countActivePlayers(weeklyGrowthRows);
+  const dailyChallengeAttempts = growthRows.filter(
+    (row) => row.event_type === "daily_challenge_attempted",
+  ).length;
+  const dailyChallengeCompletions = growthRows.filter(
+    (row) => row.event_type === "daily_challenge_completed",
+  );
 
   return {
     overview: {
@@ -164,6 +173,9 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
       weeklyActivePlayers,
       weeklyReturningPlayers: countReturningUsers(weeklyGrowthRows),
       averageReviewsPerActivePlayer: reviewsPerActivePlayer(weeklyGrowthRows, weeklyActivePlayers),
+      dailyChallengeAttempts,
+      dailyChallengeCompletionRate: percentage(dailyChallengeCompletions.length, dailyChallengeAttempts),
+      averageStreak: averageDailyChallengeStreak(dailyChallengeCompletions, now),
       averageGrade: averageGrade(reviewRows),
       averageConfidence: Math.round(averageConfidence),
     },
@@ -534,6 +546,49 @@ function reviewsPerActivePlayer(rows: GrowthEventRow[], activePlayers: number) {
 
   const completedReviews = rows.filter((row) => row.event_type === "review_completed").length;
   return Math.round((completedReviews / activePlayers) * 10) / 10;
+}
+
+function averageDailyChallengeStreak(rows: GrowthEventRow[], now: Date) {
+  const daysByVisitor = new Map<string, Set<string>>();
+
+  rows.forEach((row) => {
+    if (!row.visitor_id) {
+      return;
+    }
+
+    const dateKey = row.created_at.slice(0, 10);
+    const days = daysByVisitor.get(row.visitor_id) ?? new Set<string>();
+    days.add(dateKey);
+    daysByVisitor.set(row.visitor_id, days);
+  });
+
+  const streaks = Array.from(daysByVisitor.values()).map((days) =>
+    currentDailyStreak(Array.from(days), getUtcDateKey(now)),
+  );
+
+  if (streaks.length === 0) {
+    return 0;
+  }
+
+  return Math.round(average(streaks) * 10) / 10;
+}
+
+function currentDailyStreak(completedDays: string[], todayKey: string) {
+  const completed = new Set(completedDays);
+  const utcDayInMs = 24 * 60 * 60 * 1000;
+  let cursor = new Date(`${todayKey}T00:00:00.000Z`);
+  let streak = 0;
+
+  while (completed.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor = new Date(cursor.getTime() - utcDayInMs);
+  }
+
+  return streak;
+}
+
+function getUtcDateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
 
 function percentage(value: number, total: number) {

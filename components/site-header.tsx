@@ -55,6 +55,12 @@ export function SiteHeader({
           Progress
         </Link>
         <Link
+          href="/daily"
+          className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 lg:inline-flex"
+        >
+          Daily
+        </Link>
+        <Link
           href="/blog"
           className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 sm:inline-flex"
         >

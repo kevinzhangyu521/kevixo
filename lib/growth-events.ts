@@ -5,7 +5,9 @@ export type GrowthEventType =
   | "review_completed"
   | "share_clicked"
   | "copy_link_clicked"
-  | "image_downloaded";
+  | "image_downloaded"
+  | "daily_challenge_attempted"
+  | "daily_challenge_completed";
 
 const growthEventsTable = "growth_events";
 const emailCapturesTable = "email_captures";

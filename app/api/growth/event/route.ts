@@ -7,6 +7,8 @@ const allowedEvents: GrowthEventType[] = [
   "share_clicked",
   "copy_link_clicked",
   "image_downloaded",
+  "daily_challenge_attempted",
+  "daily_challenge_completed",
 ];
 
 export async function POST(request: Request) {

@@ -25,6 +25,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: "https://www.kevixo.com/daily",
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.85,
+    },
+    {
       url: "https://www.kevixo.com/privacy",
       lastModified,
       changeFrequency: "yearly",

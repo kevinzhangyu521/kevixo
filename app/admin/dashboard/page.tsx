@@ -191,6 +191,12 @@ function OverviewCards({ dashboard }: { dashboard: FounderDashboardData }) {
       label: "Average Reviews per Active Player",
       value: dashboard.overview.averageReviewsPerActivePlayer,
     },
+    { label: "Daily Challenge Attempts", value: dashboard.overview.dailyChallengeAttempts },
+    {
+      label: "Daily Challenge Completion Rate",
+      value: `${dashboard.overview.dailyChallengeCompletionRate}%`,
+    },
+    { label: "Average Streak", value: dashboard.overview.averageStreak },
     { label: "Average Grade", value: dashboard.overview.averageGrade },
     { label: "Average Confidence", value: `${dashboard.overview.averageConfidence}%` },
   ];
