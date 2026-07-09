@@ -1,3 +1,5 @@
+import { parseHandHistory } from "@/lib/hand-history/parser";
+
 export type ImportMethodId = "screenshot" | "paste" | "manual";
 
 export type SeatPosition = "SB" | "BB" | "UTG" | "HJ" | "CO" | "BTN" | "Unknown";
@@ -93,18 +95,21 @@ export function buildScreenshotHandModel(fileName?: string): UnifiedHandModel {
 }
 
 export function buildPastedHandModel(handHistory: string): UnifiedHandModel {
-  const cards = extractCards(handHistory);
+  const parsedHand = parseHandHistory(handHistory);
+  const cards = extractCards(parsedHand.normalizedText);
 
   return createBaseHandModel("paste", {
-    rawInput: handHistory,
+    rawInput: parsedHand.normalizedText,
     heroCards: cards.slice(0, 2),
     boardCards: cards.slice(2, 7),
-    actions: extractActions(handHistory),
+    actions: extractActions(parsedHand.normalizedText),
     importNotes: [
-      "Text was normalized into Kevixo's provider-agnostic hand model.",
-      "Provider-specific parser plugins can improve positions, stacks, and action sizing later.",
+      `Detected source: ${parsedHand.platform}.`,
+      "No manual formatting required.",
+      ...parsedHand.validation.messages,
     ],
-    sourceConfidence: handHistory.trim().length > 80 ? 68 : 35,
+    sourceConfidence: parsedHand.detection.confidence,
+    provider: parsedHand.platform,
   });
 }
 
@@ -203,6 +208,7 @@ function createBaseHandModel(
     rawInput?: string;
     importNotes?: string[];
     sourceConfidence?: number;
+    provider?: string;
   } = {},
 ): UnifiedHandModel {
   const [flopOne, flopTwo, flopThree, turn, river] = options.boardCards ?? [];
@@ -211,6 +217,7 @@ function createBaseHandModel(
     id: `hand-${method}`,
     source: {
       method,
+      provider: options.provider,
       confidence: options.sourceConfidence ?? 30,
     },
     game: {

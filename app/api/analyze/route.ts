@@ -5,6 +5,7 @@ import {
   type CoachingReport,
 } from "@/services/ai";
 import { insertHandReview } from "@/lib/supabase-hand-reviews";
+import { parseHandHistory } from "@/lib/hand-history/parser";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -21,9 +22,12 @@ export async function POST(request: Request) {
     );
   }
 
+  const parsedHand = parseHandHistory(handHistory);
+  const normalizedHandHistory = parsedHand.normalizedText || handHistory;
+
   if (body.question && body.report) {
     const followUp = await answerFollowUpQuestion({
-      handHistory,
+      handHistory: normalizedHandHistory,
       report: body.report,
       question: body.question,
     });
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json(followUp);
   }
 
-  const result = await analyzeHandHistory(handHistory);
+  const result = await analyzeHandHistory(normalizedHandHistory);
 
   if (!result.ok) {
     return NextResponse.json(
@@ -49,7 +53,7 @@ export async function POST(request: Request) {
 
   try {
     await insertHandReview({
-      handHistory,
+      handHistory: normalizedHandHistory,
       report: result.report,
       userAgent: request.headers.get("user-agent") ?? undefined,
     });

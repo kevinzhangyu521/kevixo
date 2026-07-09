@@ -80,7 +80,7 @@ export async function analyzeHandHistory(handHistory: string): Promise<AnalyzeRe
     return {
       ok: false,
       error:
-        "This does not look like a complete PokerStars or GGPoker hand history yet. Paste the full hand including seats, hole cards, streets, and actions.",
+        "A few hand details are missing before Kevixo can review this hand. Paste the full hand including seats, hole cards, streets, and actions.",
     };
   }
 

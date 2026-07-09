@@ -16,6 +16,7 @@ import {
   type SeatPosition,
   type UnifiedHandModel,
 } from "@/lib/hand-import";
+import { parseHandHistory } from "@/lib/hand-history/parser";
 
 const heroPositions: SeatPosition[] = ["SB", "BB", "UTG", "HJ", "CO", "BTN", "Unknown"];
 
@@ -76,16 +77,16 @@ export default function ImportHandPage() {
               Import Hand
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400 md:text-lg md:leading-8">
-              Bring a hand in from a screenshot, text history, or manual builder. Every path
-              becomes the same internal hand model before Kevixo analyzes decisions.
+              Paste your hand history from common poker rooms. Kevixo cleans up formatting and
+              prepares the hand for review.
             </p>
           </div>
           <Card className="border-primary/20 bg-slate-950/58 p-5">
-            <CardTitle>Architecture</CardTitle>
+            <CardTitle>Paste your hand history</CardTitle>
             <div className="mt-4 grid gap-3 text-sm leading-6 text-slate-300">
-              <ArchitectureStep label="Import Adapter" value={activeMethod} />
-              <ArchitectureStep label="Unified Model" value="KevixoHandModel" />
-              <ArchitectureStep label="Analysis Layer" value="Provider-agnostic coaching" />
+              <ArchitectureStep label="Supported rooms" value="PokerStars, GGPoker, WPT, ACR and more" />
+              <ArchitectureStep label="Formatting" value="No manual formatting required" />
+              <ArchitectureStep label="Current method" value={activeMethod} />
             </div>
           </Card>
         </div>
@@ -203,15 +204,41 @@ function PasteImporter({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const parsedHand = parseHandHistory(value);
+
   return (
     <div>
-      <CardTitle>Paste Hand History</CardTitle>
+      <CardTitle>Paste your hand history</CardTitle>
+      <p className="mt-2 text-sm leading-6 text-slate-400">
+        Supports PokerStars, GGPoker, WPT, ACR and more. No manual formatting required.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          {parsedHand.platform}
+        </span>
+        <span className="rounded-full border border-slate-800 bg-slate-950/48 px-3 py-1 text-xs font-semibold text-slate-400">
+          {parsedHand.detection.confidence}% match
+        </span>
+      </div>
       <Textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-5 min-h-80"
-        placeholder="Paste any exported hand text here..."
+        placeholder="Paste your hand history here..."
       />
+      <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/48 p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Import Check
+        </p>
+        <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-300">
+          {parsedHand.validation.messages.map((message) => (
+            <li key={message} className="flex gap-2">
+              <span className="text-primary">-</span>
+              <span>{message}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
       <ImportActions model={model} />
     </div>
   );
@@ -336,7 +363,7 @@ function ImportActions({ model }: { model: UnifiedHandModel }) {
         </Link>
       </Button>
       <p className="text-sm leading-6 text-slate-500">
-        Analysis receives the normalized model, not provider-specific input.
+        Kevixo will keep the original meaning while cleaning up the formatting.
       </p>
     </div>
   );
@@ -358,7 +385,7 @@ function ModelPreview({ model }: { model: UnifiedHandModel }) {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <PreviewStat label="Source" value={model.source.method} />
+        <PreviewStat label="Source" value={model.source.provider ?? model.source.method} />
         <PreviewStat label="Game" value={model.game.variant} />
         <PreviewStat label="Hero" value={model.hero.position} />
         <PreviewStat label="Cards" value={model.hero.cards.join(" ") || "Pending"} />

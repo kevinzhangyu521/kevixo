@@ -29,6 +29,7 @@ import {
 } from "@/lib/review-feedback";
 import { findStoredReview, saveStoredReview } from "@/lib/review-store";
 import { saveGrowthEvent, saveReviewEmail } from "@/lib/growth-client";
+import { parseHandHistory } from "@/lib/hand-history/parser";
 import type { CoachingReport } from "@/services/ai";
 
 const loadingSteps = [
@@ -155,6 +156,7 @@ export default function ReviewPage() {
 
   const trimmedHand = handHistory.trim();
   const characterCount = handHistory.length;
+  const parsedHand = useMemo(() => parseHandHistory(handHistory), [handHistory]);
   const canAnalyze = useMemo(() => trimmedHand.length > 0 && !isLoading, [trimmedHand, isLoading]);
 
   async function handleAnalyze(event: FormEvent<HTMLFormElement>) {
@@ -380,12 +382,28 @@ export default function ReviewPage() {
             </div>
 
             <div className="flex items-center justify-between gap-4">
-              <label htmlFor="hand-history" className="text-sm font-medium text-slate-200">
-                Hand history
-              </label>
+              <div>
+                <label htmlFor="hand-history" className="text-sm font-medium text-slate-200">
+                  Paste your hand history
+                </label>
+                <p className="mt-1 text-xs text-slate-500">
+                  Supports PokerStars, GGPoker, WPT, ACR and more. No manual formatting required.
+                </p>
+              </div>
               <p className="text-xs text-slate-500" aria-live="polite">
                 {characterCount.toLocaleString()} characters
               </p>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                {parsedHand.platform}
+              </span>
+              {parsedHand.normalizationNotes.length > 0 ? (
+                <span className="rounded-full border border-slate-800 bg-slate-950/48 px-3 py-1 text-xs font-semibold text-slate-400">
+                  Formatting cleaned
+                </span>
+              ) : null}
             </div>
 
             <Textarea
@@ -828,6 +846,7 @@ function HandCompletionAssistant({
   handHistory: string;
   onTryDemo: () => void;
 }) {
+  const parsedHand = parseHandHistory(handHistory);
   const missingItems = getMissingHandDetails(handHistory);
 
   return (
@@ -839,6 +858,13 @@ function HandCompletionAssistant({
             Kevixo needs a little more hand detail before it can give useful coaching.
             Add the missing pieces below and run the review again.
           </p>
+          <div className="mt-4 grid gap-2 text-sm leading-6 text-slate-300">
+            {parsedHand.validation.messages.map((message) => (
+              <p key={message} className="rounded-xl border border-slate-800 bg-slate-950/48 px-4 py-3">
+                {message}
+              </p>
+            ))}
+          </div>
         </div>
         <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
           Platform-agnostic import
