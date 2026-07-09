@@ -28,6 +28,7 @@ import {
   type UsefulPart,
 } from "@/lib/review-feedback";
 import { findStoredReview, saveStoredReview } from "@/lib/review-store";
+import { saveGrowthEvent, saveReviewEmail } from "@/lib/growth-client";
 import type { CoachingReport } from "@/services/ai";
 
 const loadingSteps = [
@@ -66,6 +67,10 @@ export default function ReviewPage() {
   const [feedbackStatusMessage, setFeedbackStatusMessage] = useState(
     "No account required. Feedback helps improve Kevixo.",
   );
+  const [saveEmail, setSaveEmail] = useState("");
+  const [saveEmailStatus, setSaveEmailStatus] = useState("Email is optional.");
+  const [isSaveEmailSaving, setIsSaveEmailSaving] = useState(false);
+  const [isSaveEmailSent, setIsSaveEmailSent] = useState(false);
 
   const loadStoredReviewFromServer = useCallback(async (reviewId: string) => {
     try {
@@ -171,8 +176,13 @@ export default function ReviewPage() {
     setIsFeedbackSent(false);
     setIsFeedbackSaving(false);
     setFeedbackStatusMessage("No account required. Feedback helps improve Kevixo.");
+    setSaveEmail("");
+    setSaveEmailStatus("Email is optional.");
+    setIsSaveEmailSaving(false);
+    setIsSaveEmailSent(false);
     setReviewLookupMessage("");
     trackAnalyze();
+    void saveGrowthEvent("review_started");
 
     try {
       const [response] = await Promise.all([
@@ -419,6 +429,50 @@ export default function ReviewPage() {
         ) : null}
         {report ? <ReviewShareCard report={report} /> : null}
         {report ? <ReportCards report={report} /> : null}
+        {report ? (
+          <SaveReviewsCard
+            email={saveEmail}
+            isSaving={isSaveEmailSaving}
+            isSent={isSaveEmailSent}
+            statusMessage={saveEmailStatus}
+            onEmailChange={setSaveEmail}
+            onSubmit={async (event) => {
+              event.preventDefault();
+
+              if (isSaveEmailSaving || isSaveEmailSent) {
+                return;
+              }
+
+              const normalizedEmail = saveEmail.trim();
+
+              if (!normalizedEmail) {
+                setSaveEmailStatus("No problem. Your review is saved in this browser.");
+                return;
+              }
+
+              if (!isValidFeedbackEmail(normalizedEmail)) {
+                setSaveEmailStatus("Please enter a valid email address, or leave it blank.");
+                return;
+              }
+
+              setIsSaveEmailSaving(true);
+
+              try {
+                await saveReviewEmail(normalizedEmail, report.reviewId);
+                setIsSaveEmailSent(true);
+                setSaveEmailStatus("Saved. We'll send useful Kevixo updates when they are ready.");
+              } catch (caughtError) {
+                setSaveEmailStatus(
+                  caughtError instanceof Error
+                    ? caughtError.message
+                    : "Email could not be saved. Please try again later.",
+                );
+              } finally {
+                setIsSaveEmailSaving(false);
+              }
+            }}
+          />
+        ) : null}
         {report && !isFeedbackDismissed ? (
           <FeedbackWidget
             improvement={feedbackImprovement}
@@ -436,6 +490,62 @@ export default function ReviewPage() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+function SaveReviewsCard({
+  email,
+  isSaving,
+  isSent,
+  statusMessage,
+  onEmailChange,
+  onSubmit,
+}: {
+  email: string;
+  isSaving: boolean;
+  isSent: boolean;
+  statusMessage: string;
+  onEmailChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Card className="fade-in mt-6 border-primary/20 bg-slate-950/58 p-5 md:p-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <CardTitle>Save your reviews</CardTitle>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+            Enter your email to receive future improvements and keep your coaching history.
+          </p>
+        </div>
+        <Button asChild variant="secondary">
+          <Link href="/my-reviews">Open My Reviews</Link>
+        </Button>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-5 grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
+        <div>
+          <label htmlFor="save-review-email" className="sr-only">
+            Email
+          </label>
+          <input
+            id="save-review-email"
+            value={email}
+            onChange={(event) => onEmailChange(event.target.value.slice(0, 120))}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="Email address (optional)"
+            className="min-h-11 w-full rounded-xl border border-slate-800 bg-slate-950/70 px-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-primary/55 focus:outline-none"
+          />
+          <p className="mt-2 text-xs leading-5 text-slate-500" role="status" aria-live="polite">
+            {statusMessage}
+          </p>
+        </div>
+        <Button type="submit" disabled={isSaving || isSent}>
+          {isSaving ? "Saving..." : isSent ? "Saved" : "Save"}
+        </Button>
+      </form>
+    </Card>
   );
 }
 

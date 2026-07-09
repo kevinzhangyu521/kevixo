@@ -18,6 +18,7 @@ import {
   toShareReview,
   type ShareReview,
 } from "@/lib/share-review";
+import { saveGrowthEvent } from "@/lib/growth-client";
 import type { CoachingReport } from "@/services/ai";
 
 type ReviewShareCardProps = {
@@ -35,6 +36,7 @@ export function ReviewShareCard({ report, showActions = true }: ReviewShareCardP
 
   async function handleShare() {
     trackShareClicked(review.reviewId);
+    void saveGrowthEvent("share_clicked", review.reviewId);
     const shareUrl = getBrowserShareUrl(review.reviewId);
 
     try {
@@ -57,6 +59,7 @@ export function ReviewShareCard({ report, showActions = true }: ReviewShareCardP
 
   async function handleCopyLink() {
     trackCopyLinkClicked(review.reviewId);
+    void saveGrowthEvent("copy_link_clicked", review.reviewId);
 
     try {
       await copyText(getBrowserShareUrl(review.reviewId));
@@ -68,6 +71,7 @@ export function ReviewShareCard({ report, showActions = true }: ReviewShareCardP
 
   async function handleDownloadImage() {
     trackImageDownloaded(review.reviewId);
+    void saveGrowthEvent("image_downloaded", review.reviewId);
 
     try {
       await downloadReviewImage(review);

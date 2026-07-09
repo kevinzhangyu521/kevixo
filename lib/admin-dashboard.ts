@@ -5,6 +5,13 @@ type UsefulPart = "Biggest Mistake" | "Better Decision" | "Coach Note" | "Homewo
 type BrowserName = "Chrome" | "Safari" | "Edge" | "Firefox" | "Other";
 type DeviceName = "Desktop" | "Mobile" | "Tablet";
 type GradeBucket = "A" | "B" | "C" | "D";
+type GrowthEventRow = {
+  created_at: string;
+  event_type: string;
+  review_id: string | null;
+  visitor_id: string | null;
+  user_agent: string | null;
+};
 
 type ReviewDashboardRow = {
   created_at: string;
@@ -25,12 +32,17 @@ type FeedbackDashboardRow = {
 
 export type FounderDashboardData = {
   overview: {
+    reviewsStarted: number;
+    reviewsCompleted: number;
     reviewsToday: number;
     reviewsThisWeek: number;
     feedbackToday: number;
     openFeedback: number;
     resolvedFeedback: number;
     feedbackRate: number;
+    shareRate: number;
+    emailsCollected: number;
+    returningVisitors: number;
     averageGrade: string;
     averageConfidence: number;
   };
@@ -64,6 +76,8 @@ export type FounderDashboardData = {
 
 const feedbackTable = "review_feedback";
 const reviewTable = "hand_reviews";
+const growthEventsTable = "growth_events";
+const emailCapturesTable = "email_captures";
 const usefulPartLabels: UsefulPart[] = [
   "Biggest Mistake",
   "Better Decision",
@@ -89,8 +103,10 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
     openFeedback,
     resolvedFeedback,
     totalFeedback,
+    emailsCollected,
     reviewRows,
     feedbackRows,
+    growthRows,
   ] = await Promise.all([
     countRows(supabase, reviewTable, { createdAfter: todayStart }),
     countRows(supabase, reviewTable, { createdAfter: weekStart }),
@@ -99,8 +115,10 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
     countRows(supabase, feedbackTable, { status: "open" }),
     countRows(supabase, feedbackTable, { status: "resolved" }),
     countRows(supabase, feedbackTable),
+    countOptionalRows(supabase, emailCapturesTable),
     listDashboardReviews(supabase),
     listDashboardFeedback(supabase),
+    listGrowthEvents(supabase),
   ]);
 
   const averageConfidence = average(
@@ -115,12 +133,20 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
 
   return {
     overview: {
+      reviewsStarted: growthRows.filter((row) => row.event_type === "review_started").length,
+      reviewsCompleted: totalReviews,
       reviewsToday,
       reviewsThisWeek,
       feedbackToday,
       openFeedback,
       resolvedFeedback,
       feedbackRate: percentage(totalFeedback, totalReviews),
+      shareRate: percentage(
+        growthRows.filter((row) => row.event_type === "share_clicked").length,
+        totalReviews,
+      ),
+      emailsCollected,
+      returningVisitors: countReturningVisitors(growthRows),
       averageGrade: averageGrade(reviewRows),
       averageConfidence: Math.round(averageConfidence),
     },
@@ -130,6 +156,18 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
     deviceBreakdown,
     gradeDistribution,
   };
+}
+
+async function countOptionalRows(
+  supabase: ReturnType<typeof getAdminClient>,
+  table: string,
+) {
+  try {
+    return await countRows(supabase, table);
+  } catch (error) {
+    console.info(`[Kevixo dashboard] ${table} is not available yet`, error);
+    return 0;
+  }
 }
 
 function getAdminClient() {
@@ -197,6 +235,22 @@ async function listDashboardFeedback(supabase: ReturnType<typeof getAdminClient>
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  return data ?? [];
+}
+
+async function listGrowthEvents(supabase: ReturnType<typeof getAdminClient>) {
+  const { data, error } = await supabase
+    .from(growthEventsTable)
+    .select("created_at, event_type, review_id, visitor_id, user_agent")
+    .order("created_at", { ascending: false })
+    .limit(1000)
+    .returns<GrowthEventRow[]>();
+
+  if (error) {
+    console.info("[Kevixo dashboard] growth_events is not available yet", error.message);
+    return [];
   }
 
   return data ?? [];
@@ -391,6 +445,20 @@ function average(values: number[]) {
   }
 
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function countReturningVisitors(rows: GrowthEventRow[]) {
+  const visitorCounts = new Map<string, number>();
+
+  rows.forEach((row) => {
+    if (!row.visitor_id) {
+      return;
+    }
+
+    visitorCounts.set(row.visitor_id, (visitorCounts.get(row.visitor_id) ?? 0) + 1);
+  });
+
+  return Array.from(visitorCounts.values()).filter((count) => count > 1).length;
 }
 
 function percentage(value: number, total: number) {

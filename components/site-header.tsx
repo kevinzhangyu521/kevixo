@@ -37,6 +37,12 @@ export function SiteHeader({
           Analyzer
         </Link>
         <Link
+          href="/my-reviews"
+          className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 md:inline-flex"
+        >
+          My Reviews
+        </Link>
+        <Link
           href="/blog"
           className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 sm:inline-flex"
         >

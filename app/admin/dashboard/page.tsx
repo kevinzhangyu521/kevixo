@@ -171,12 +171,17 @@ export default function FounderDashboardPage() {
 
 function OverviewCards({ dashboard }: { dashboard: FounderDashboardData }) {
   const cards = [
+    { label: "Reviews Started", value: dashboard.overview.reviewsStarted },
+    { label: "Reviews Completed", value: dashboard.overview.reviewsCompleted },
     { label: "Reviews Today", value: dashboard.overview.reviewsToday },
     { label: "Reviews This Week", value: dashboard.overview.reviewsThisWeek },
     { label: "Feedback Today", value: dashboard.overview.feedbackToday },
     { label: "Open Feedback", value: dashboard.overview.openFeedback },
     { label: "Resolved Feedback", value: dashboard.overview.resolvedFeedback },
     { label: "Feedback Rate", value: `${dashboard.overview.feedbackRate}%` },
+    { label: "Share Rate", value: `${dashboard.overview.shareRate}%` },
+    { label: "Emails Collected", value: dashboard.overview.emailsCollected },
+    { label: "Returning Visitors", value: dashboard.overview.returningVisitors },
     { label: "Average Grade", value: dashboard.overview.averageGrade },
     { label: "Average Confidence", value: `${dashboard.overview.averageConfidence}%` },
   ];
