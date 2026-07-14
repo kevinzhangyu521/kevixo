@@ -18,12 +18,14 @@ export async function insertGrowthEvent({
   visitorId,
   sourcePage,
   userAgent,
+  userId,
 }: {
   eventType: GrowthEventType;
   reviewId?: string;
   visitorId?: string;
   sourcePage?: string;
   userAgent?: string;
+  userId?: string;
 }) {
   const supabase = getServerClient();
 
@@ -31,6 +33,7 @@ export async function insertGrowthEvent({
     event_type: eventType,
     review_id: reviewId ?? null,
     visitor_id: visitorId ?? null,
+    user_id: userId ?? null,
     source_page: sourcePage ?? "/review",
     user_agent: userAgent ?? null,
   });
@@ -46,12 +49,14 @@ export async function insertEmailCapture({
   visitorId,
   sourcePage,
   userAgent,
+  userId,
 }: {
   email: string;
   reviewId?: string;
   visitorId?: string;
   sourcePage?: string;
   userAgent?: string;
+  userId?: string;
 }) {
   const supabase = getServerClient();
 
@@ -59,6 +64,7 @@ export async function insertEmailCapture({
     email,
     review_id: reviewId ?? null,
     visitor_id: visitorId ?? null,
+    user_id: userId ?? null,
     source_page: sourcePage ?? "/review",
     user_agent: userAgent ?? null,
   });

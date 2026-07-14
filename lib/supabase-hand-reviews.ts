@@ -12,6 +12,7 @@ type HandReviewRow = {
   difficulty: string | null;
   source_page: string;
   user_agent: string | null;
+  user_id: string | null;
   ai_version: string;
 };
 
@@ -32,10 +33,12 @@ export async function insertHandReview({
   handHistory,
   report,
   userAgent,
+  userId,
 }: {
   handHistory: string;
   report: CoachingReport;
   userAgent?: string;
+  userId?: string;
 }) {
   const supabase = getHandReviewServerClient();
   const payload = {
@@ -47,6 +50,7 @@ export async function insertHandReview({
     difficulty: String(report.difficulty),
     source_page: "/review",
     user_agent: userAgent ?? null,
+    user_id: userId ?? null,
     ai_version: "v1",
   };
 
@@ -172,6 +176,7 @@ function logHandReviewInsertPayload(payload: {
   difficulty: string;
   source_page: string;
   user_agent: string | null;
+  user_id: string | null;
   ai_version: string;
 }) {
   if (process.env.NODE_ENV === "production") {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { insertEmailCapture } from "@/lib/growth-events";
+import { getUserFromRequest } from "@/lib/supabase-auth";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -15,10 +16,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    const user = await getUserFromRequest(request);
+
     await insertEmailCapture({
       email,
       reviewId: body.reviewId,
       visitorId: body.visitorId,
+      userId: user?.id,
       sourcePage: body.sourcePage,
       userAgent: request.headers.get("user-agent") ?? undefined,
     });

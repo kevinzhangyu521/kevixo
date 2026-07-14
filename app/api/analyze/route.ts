@@ -6,6 +6,7 @@ import {
 } from "@/services/ai";
 import { insertHandReview } from "@/lib/supabase-hand-reviews";
 import { parseHandHistory } from "@/lib/hand-history/parser";
+import { getUserFromRequest } from "@/lib/supabase-auth";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -52,10 +53,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    const user = await getUserFromRequest(request);
     await insertHandReview({
       handHistory: normalizedHandHistory,
       report: result.report,
       userAgent: request.headers.get("user-agent") ?? undefined,
+      userId: user?.id,
     });
   } catch (error) {
     console.error(

@@ -147,6 +147,7 @@ export default function FounderDashboardPage() {
             {dashboard ? (
               <>
                 <OverviewCards dashboard={dashboard} />
+                <RevenueCards dashboard={dashboard} />
                 <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
                   <FeedbackInsights dashboard={dashboard} />
                   <RecentActivity dashboard={dashboard} />
@@ -166,6 +167,33 @@ export default function FounderDashboardPage() {
         )}
       </section>
     </main>
+  );
+}
+
+function RevenueCards({ dashboard }: { dashboard: FounderDashboardData }) {
+  const cards = [
+    { label: "Active Subscribers", value: dashboard.revenue.activeSubscribers },
+    { label: "Monthly Recurring Revenue", value: `$${dashboard.revenue.mrr.toFixed(2)}` },
+    { label: "New Subscribers", value: dashboard.revenue.newSubscribers },
+    { label: "Cancelled Subscribers", value: dashboard.revenue.cancelledSubscribers },
+  ];
+
+  return (
+    <Card className="border-primary/25 bg-primary/5 p-5 md:p-6">
+      <CardTitle>Revenue</CardTitle>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((card) => (
+          <div key={card.label} className="rounded-xl border border-slate-800 bg-slate-950/48 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              {card.label}
+            </p>
+            <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-50">
+              {card.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

@@ -46,6 +46,10 @@ after the client mounts. Neither blocks initial page rendering.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon public key used for feedback inserts.
 - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key used only by server-side admin feedback routes.
 - `NEXT_PUBLIC_ADMIN_FEEDBACK_KEY`: passcode for `/admin/feedback`.
+- `NEXT_PUBLIC_SITE_URL`: production site URL, for example `https://www.kevixo.com`.
+- `STRIPE_SECRET_KEY`: Stripe secret key used only by server-side billing routes.
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret for `/api/stripe/webhook`.
+- `STRIPE_COACH_MONTHLY_PRICE_ID`: Stripe monthly subscription price ID for Kevixo Coach.
 
 ### Custom Events
 
@@ -75,3 +79,30 @@ at `supabase/migrations/002_create_hand_reviews.sql`. Anonymous users can insert
 completed reviews, but cannot read, update, or delete them. Admin review reads
 use the server-side service role key through `/api/admin/reviews/[reviewId]` and
 require the admin passcode header.
+
+## Revenue Infrastructure
+
+Kevixo Coach subscriptions use Supabase Auth for identity and Stripe for billing.
+The subscription source of truth is the `subscriptions` table from
+`supabase/migrations/005_coach_subscriptions.sql`.
+
+Server subscription checks must go through `lib/subscription.ts`:
+
+- `getSubscription(userId)`
+- `isCoachUser(userId)`
+- `requireCoach(userId)`
+
+Stripe routes:
+
+- `POST /api/billing/checkout`: creates a Stripe Checkout subscription session.
+- `POST /api/billing/portal`: opens the Stripe Customer Portal.
+- `POST /api/stripe/webhook`: receives Stripe subscription lifecycle events.
+
+Required Stripe setup:
+
+1. Create a monthly recurring Stripe Price for `$9.99/month`.
+2. Copy the Price ID into `STRIPE_COACH_MONTHLY_PRICE_ID`.
+3. Add a webhook endpoint for `https://www.kevixo.com/api/stripe/webhook`.
+4. Listen for `checkout.session.completed`, `customer.subscription.created`,
+   `customer.subscription.updated`, and `customer.subscription.deleted`.
+5. Copy the webhook signing secret into `STRIPE_WEBHOOK_SECRET`.

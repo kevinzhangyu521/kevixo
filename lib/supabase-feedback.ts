@@ -19,6 +19,7 @@ type ReviewFeedbackRow = {
   email: string | null;
   source_page: string;
   admin_note: string | null;
+  user_id: string | null;
 };
 
 export type ReviewFeedbackListResult = {
@@ -163,10 +164,10 @@ function logSupabaseRequestUrl(operation: string, supabaseUrl: string) {
   );
 }
 
-export async function insertReviewFeedback(entry: ReviewFeedbackEntry) {
+export async function insertReviewFeedback(entry: ReviewFeedbackEntry, userId?: string) {
   const normalizedEntry = normalizeFeedbackEntry(entry);
   const supabase = getFeedbackInsertClient();
-  const insertPayload = toInsertRow(normalizedEntry);
+  const insertPayload = toInsertRow(normalizedEntry, userId);
   logFeedbackInsertPayload(insertPayload);
   const { data, error } = await supabase
     .from(tableName)
@@ -320,7 +321,7 @@ function normalizeFeedbackEntry(entry: ReviewFeedbackEntry) {
   return entry;
 }
 
-function toInsertRow(entry: ReviewFeedbackEntry) {
+function toInsertRow(entry: ReviewFeedbackEntry, userId?: string) {
   return {
     status: entry.status,
     useful_part: entry.usefulPart,
@@ -332,6 +333,7 @@ function toInsertRow(entry: ReviewFeedbackEntry) {
     review_id: entry.reviewId ?? null,
     email: entry.email ?? null,
     source_page: entry.sourcePage ?? "/review",
+    user_id: userId ?? null,
   };
 }
 

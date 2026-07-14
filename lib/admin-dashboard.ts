@@ -13,6 +13,14 @@ type GrowthEventRow = {
   user_agent: string | null;
 };
 
+type SubscriptionDashboardRow = {
+  created_at: string;
+  updated_at: string;
+  status: string;
+  plan: string;
+  current_period_end: string | null;
+};
+
 type ReviewDashboardRow = {
   created_at: string;
   review_id: string;
@@ -55,6 +63,12 @@ export type FounderDashboardData = {
     averageGrade: string;
     averageConfidence: number;
   };
+  revenue: {
+    activeSubscribers: number;
+    mrr: number;
+    newSubscribers: number;
+    cancelledSubscribers: number;
+  };
   usefulParts: Array<{
     label: UsefulPart;
     count: number;
@@ -87,6 +101,8 @@ const feedbackTable = "review_feedback";
 const reviewTable = "hand_reviews";
 const growthEventsTable = "growth_events";
 const emailCapturesTable = "email_captures";
+const subscriptionsTable = "subscriptions";
+const coachMonthlyPrice = 9.99;
 const usefulPartLabels: UsefulPart[] = [
   "Biggest Mistake",
   "Better Decision",
@@ -116,6 +132,7 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
     reviewRows,
     feedbackRows,
     growthRows,
+    subscriptionRows,
   ] = await Promise.all([
     countRows(supabase, reviewTable, { createdAfter: todayStart }),
     countRows(supabase, reviewTable, { createdAfter: weekStart }),
@@ -128,6 +145,7 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
     listDashboardReviews(supabase),
     listDashboardFeedback(supabase),
     listGrowthEvents(supabase),
+    listSubscriptions(supabase),
   ]);
 
   const averageConfidence = average(
@@ -179,6 +197,7 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
       averageGrade: averageGrade(reviewRows),
       averageConfidence: Math.round(averageConfidence),
     },
+    revenue: buildRevenueMetrics(subscriptionRows, todayStart),
     usefulParts,
     recentActivity: buildRecentActivity(reviewRows, feedbackRows),
     browserBreakdown,
@@ -283,6 +302,48 @@ async function listGrowthEvents(supabase: ReturnType<typeof getAdminClient>) {
   }
 
   return data ?? [];
+}
+
+async function listSubscriptions(supabase: ReturnType<typeof getAdminClient>) {
+  try {
+    const { data, error } = await supabase
+      .from(subscriptionsTable)
+      .select("created_at, updated_at, status, plan, current_period_end")
+      .order("created_at", { ascending: false })
+      .limit(1000)
+      .returns<SubscriptionDashboardRow[]>();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data ?? [];
+  } catch (error) {
+    console.info("[Kevixo dashboard] subscriptions is not available yet", error);
+    return [];
+  }
+}
+
+function buildRevenueMetrics(rows: SubscriptionDashboardRow[], todayStart: string) {
+  const now = Date.now();
+  const activeRows = rows.filter((row) => {
+    if (row.plan !== "coach" || !["active", "trialing"].includes(row.status)) {
+      return false;
+    }
+
+    if (!row.current_period_end) {
+      return true;
+    }
+
+    return new Date(row.current_period_end).getTime() > now;
+  });
+
+  return {
+    activeSubscribers: activeRows.length,
+    mrr: Math.round(activeRows.length * coachMonthlyPrice * 100) / 100,
+    newSubscribers: rows.filter((row) => row.created_at >= todayStart && row.plan === "coach").length,
+    cancelledSubscribers: rows.filter((row) => row.updated_at >= todayStart && row.status === "canceled").length,
+  };
 }
 
 function buildUsefulPartBreakdown(rows: FeedbackDashboardRow[]) {

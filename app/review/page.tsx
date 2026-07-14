@@ -29,6 +29,7 @@ import {
 } from "@/lib/review-feedback";
 import { findStoredReview, saveStoredReview } from "@/lib/review-store";
 import { saveGrowthEvent, saveReviewEmail } from "@/lib/growth-client";
+import { getAuthHeaders } from "@/lib/auth-client";
 import { parseHandHistory } from "@/lib/hand-history/parser";
 import type { CoachingReport } from "@/services/ai";
 
@@ -190,7 +191,7 @@ export default function ReviewPage() {
       const [response] = await Promise.all([
         fetch("/api/analyze", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
           body: JSON.stringify({ handHistory }),
         }),
         wait(minimumLoadingMs),
@@ -261,7 +262,7 @@ export default function ReviewPage() {
     try {
       const response = await fetch("/api/feedback", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
         body: JSON.stringify(feedbackEntry),
       });
       const payload = (await response.json()) as {

@@ -1,6 +1,7 @@
 "use client";
 
 import type { GrowthEventType } from "@/lib/growth-events";
+import { getAuthHeaders, getCurrentUserId } from "@/lib/auth-client";
 
 const visitorKey = "kevixo.visitorId.v1";
 
@@ -24,11 +25,12 @@ export async function saveGrowthEvent(eventType: GrowthEventType, reviewId?: str
   try {
     await fetch("/api/growth/event", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
       body: JSON.stringify({
         eventType,
         reviewId,
         visitorId: getKevixoVisitorId(),
+        userId: await getCurrentUserId(),
         sourcePage: window.location.pathname,
       }),
     });
@@ -40,11 +42,12 @@ export async function saveGrowthEvent(eventType: GrowthEventType, reviewId?: str
 export async function saveReviewEmail(email: string, reviewId?: string) {
   const response = await fetch("/api/growth/email", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
     body: JSON.stringify({
       email,
       reviewId,
       visitorId: getKevixoVisitorId(),
+      userId: await getCurrentUserId(),
       sourcePage: window.location.pathname,
     }),
   });

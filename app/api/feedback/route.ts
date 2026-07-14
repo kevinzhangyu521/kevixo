@@ -3,11 +3,13 @@ import {
   getSupabaseFeedbackErrorDetails,
   insertReviewFeedback,
 } from "@/lib/supabase-feedback";
+import { getUserFromRequest } from "@/lib/supabase-auth";
 
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
-    const feedback = await insertReviewFeedback(payload);
+    const user = await getUserFromRequest(request);
+    const feedback = await insertReviewFeedback(payload, user?.id);
 
     return NextResponse.json({ ok: true, feedback });
   } catch (error) {
