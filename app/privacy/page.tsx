@@ -26,9 +26,10 @@ export default function PrivacyPage() {
           <CardTitle>Simple product privacy</CardTitle>
           <div className="mt-4 space-y-4 text-sm leading-7 text-slate-400">
             <p>
-              Kevixo is built as a lightweight AI poker hand review tool. The current
-              product does not require login, payment, public profiles, or community
-              sharing.
+              Kevixo is built as a lightweight AI poker hand review tool. You can use
+              the core review experience without an account, and you can create an
+              account when you want your reviews, progress, and future subscription
+              connected to one identity.
             </p>
             <p>
               Submitted hand histories and feedback may be stored so Kevixo can show

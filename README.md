@@ -80,6 +80,20 @@ completed reviews, but cannot read, update, or delete them. Admin review reads
 use the server-side service role key through `/api/admin/reviews/[reviewId]` and
 require the admin passcode header.
 
+## Accounts
+
+Kevixo uses Supabase Auth for email/password signup, login, logout, and password
+reset. User profile rows live in the `profiles` table from
+`supabase/migrations/006_account_profiles.sql`.
+
+Account routes:
+
+- `/login`: sign in, create account, and password reset flow.
+- `/account`: account profile, review history placeholder, and subscription placeholder.
+
+Authenticated reviews are saved with `hand_reviews.user_id`. Anonymous reviews
+continue to work without requiring an account.
+
 ## Revenue Infrastructure
 
 Kevixo Coach subscriptions use Supabase Auth for identity and Stripe for billing.
