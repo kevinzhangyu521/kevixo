@@ -11,6 +11,29 @@ import {
   seoLandingPages,
 } from "@/lib/seo-landing-pages";
 
+const productExplanationCards = [
+  {
+    title: "Key Lesson",
+    description: "Explain the most important decision in your hand.",
+  },
+  {
+    title: "Biggest Mistake",
+    description: "Identify the decision that limits your improvement.",
+  },
+  {
+    title: "Better Decision",
+    description: "Learn a stronger option with clear reasoning.",
+  },
+  {
+    title: "Leak Detected",
+    description: "Discover repeated patterns in your gameplay.",
+  },
+  {
+    title: "Homework",
+    description: "Get a practical improvement task after each review.",
+  },
+];
+
 type SeoLandingPageProps = {
   params: Promise<{
     slug: string;
@@ -137,19 +160,15 @@ export default async function SeoLandingPage({ params }: SeoLandingPageProps) {
         <Card className="border-slate-700/70 bg-surface/86 p-5 shadow-[0_0_0_1px_rgba(59,201,255,0.12),0_34px_110px_rgba(0,0,0,0.45)] md:p-6">
           <CardTitle>What Kevixo gives you</CardTitle>
           <div className="mt-5 grid gap-3">
-            {["Key Lesson", "Biggest Mistake", "Better Decision", "Leak Detected", "Homework"].map(
-              (item) => (
-                <div
-                  key={item}
-                  className="rounded-xl border border-slate-800 bg-slate-950/62 px-4 py-3"
-                >
-                  <p className="text-sm font-semibold text-slate-50">{item}</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
-                    A clear coaching card focused on one decision.
-                  </p>
-                </div>
-              ),
-            )}
+            {productExplanationCards.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-xl border border-slate-800 bg-slate-950/62 px-4 py-3"
+              >
+                <p className="text-sm font-semibold text-slate-50">{item.title}</p>
+                <p className="mt-1 text-sm leading-6 text-slate-500">{item.description}</p>
+              </div>
+            ))}
           </div>
         </Card>
       </section>
