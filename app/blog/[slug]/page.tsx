@@ -135,6 +135,7 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
           {article.slug === "poker-hand-history-guide" ? <HandReviewGuideLink /> : null}
           {article.slug === "ai-poker-coach" ? <AiCoachRelatedGuides /> : null}
           {article.slug === "poker-mistakes-beginners" ? <BeginnerMistakesRelatedGuides /> : null}
+          {article.slug === "gto-poker-strategy" ? <GtoRelatedGuides /> : null}
         </div>
 
         <Card className="mt-10 border-primary/20 bg-slate-950/58 p-5 md:p-6">
@@ -203,6 +204,38 @@ function BeginnerMistakesRelatedGuides() {
       <p className="mt-3 text-sm leading-6 text-slate-400">
         These guides help you turn beginner mistakes into structured hand review,
         cleaner hand records, and better AI-assisted study sessions.
+      </p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <Link
+          href="/blog/how-to-review-poker-hands"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          Hand review guide
+        </Link>
+        <Link
+          href="/blog/poker-hand-history-guide"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          Hand history guide
+        </Link>
+        <Link
+          href="/blog/ai-poker-coach"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          AI coach guide
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+function GtoRelatedGuides() {
+  return (
+    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
+      <CardTitle>Study GTO through real hands</CardTitle>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        GTO concepts become easier to understand when you connect them to clean hand
+        records, structured review, and AI-assisted coaching notes.
       </p>
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         <Link
