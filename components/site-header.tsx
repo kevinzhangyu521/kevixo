@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AccountNav } from "@/components/account-nav";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
@@ -45,6 +45,7 @@ export function SiteHeader({
   larger = false,
 }: SiteHeaderProps) {
   const pathname = usePathname();
+  const isAuthRoute = pathname === "/login" || pathname === "/signup";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -82,31 +83,39 @@ export function SiteHeader({
         <span className="sr-only">Kevixo</span>
       </Link>
       <div className="flex items-center gap-2 md:gap-3">
-        <nav className="flex items-center gap-1 md:gap-1.5" aria-label="Primary navigation">
-          {primaryNavigationItems.map((item) => (
-            <NavigationLink key={item.href} item={item} pathname={pathname} />
-          ))}
-        </nav>
-        {isLoggedIn ? (
+        {!isAuthRoute ? (
+          <nav className="flex items-center gap-1 md:gap-1.5" aria-label="Primary navigation">
+            {primaryNavigationItems.map((item) => (
+              <NavigationLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </nav>
+        ) : null}
+        {isLoggedIn && !isAuthRoute ? (
           <nav className="hidden items-center gap-1 border-l border-slate-800/80 pl-2 xl:flex">
             {userNavigationItems.map((item) => (
               <NavigationLink key={item.href} item={item} pathname={pathname} />
             ))}
           </nav>
         ) : null}
-        <Link
-          href="/pricing"
-          className="hidden whitespace-nowrap rounded-xl border border-primary/35 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-primary/15 md:inline-flex"
-        >
-          Upgrade
-        </Link>
-        <AccountNav />
-        <Link
-          href={ctaHref}
-          className="whitespace-nowrap rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:text-slate-50 hover:shadow-[0_0_28px_rgba(59,201,255,0.12)]"
-        >
-          {ctaLabel}
-        </Link>
+        {!isAuthRoute ? (
+          <Link
+            href="/pricing"
+            className="hidden whitespace-nowrap rounded-xl border border-primary/35 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-primary/15 md:inline-flex"
+          >
+            Upgrade
+          </Link>
+        ) : null}
+        <Suspense fallback={null}>
+          <AccountNav />
+        </Suspense>
+        {!isAuthRoute ? (
+          <Link
+            href={ctaHref}
+            className="whitespace-nowrap rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:text-slate-50 hover:shadow-[0_0_28px_rgba(59,201,255,0.12)]"
+          >
+            {ctaLabel}
+          </Link>
+        ) : null}
       </div>
     </header>
   );
