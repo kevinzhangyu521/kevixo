@@ -68,6 +68,12 @@ export function SiteHeader({
           Pricing
         </Link>
         <Link
+          href="/about"
+          className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 md:inline-flex"
+        >
+          About
+        </Link>
+        <Link
           href="/blog"
           className="hidden text-sm font-medium text-slate-500 transition hover:text-slate-200 sm:inline-flex"
         >

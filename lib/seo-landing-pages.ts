@@ -38,7 +38,7 @@ export const seoLandingPages = [
     category: "AI Poker Analysis",
     heroTitle: "Poker hand analysis that explains the decision, not just the result.",
     heroDescription:
-      "Kevixo is an AI poker hand analyzer for players who want to understand why a hand won, why it lost, and what decision should improve next.",
+      "Kevixo is an AI poker hand analyzer for players who want to understand the key decision in a hand and what decision should improve next.",
     whyTitle: "Why use an AI poker hand analyzer?",
     whyParagraphs: [
       "Most poker players remember the emotional part of a hand: the river card, the big call, or the moment an opponent showed a surprising hand. That memory is useful, but it is not enough for serious improvement. A poker hand analyzer gives the hand a structure. It separates the facts from the feeling, then studies positions, stack sizes, ranges, board texture, bet sizing, and final action.",
@@ -151,7 +151,7 @@ export const seoLandingPages = [
     whyParagraphs: [
       "A hand history is more than a record of who won the pot. It is the most reliable way to study a poker decision after the session ends. Memory often removes the details that matter: the exact stack depth, the preflop action, the size of a turn bet, or which player had position. A full hand history keeps those details intact so the review can be honest.",
       "Kevixo turns that raw hand history into a readable coaching report. Instead of asking a vague question like whether top pair was good, you get a structured breakdown of the key lesson, better decision, evidence, leak, and homework. The hand history remains the source of truth, but the output becomes easier to study and apply.",
-      "Good hand history review also helps you avoid results-oriented thinking. If you won the pot, your decision may still have been thin. If you lost the pot, your decision may still have been profitable. Kevixo pushes the review back toward ranges, bet sizing, board texture, and expected value. That is where real improvement happens.",
+      "Good hand history review also helps you avoid results-oriented thinking. If the pot went your way, your decision may still have been thin. If the pot went against you, your decision may still have been sound. Kevixo pushes the review back toward ranges, bet sizing, board texture, and expected value. That is where real improvement happens.",
       "For players building a study routine, reviewing one hand history at a time is realistic. You do not need a huge database to start learning. Pick one hand, understand the turning point, write down the lesson, and repeat after the next session. Over time, those reviews reveal personal patterns that are difficult to see in the moment.",
     ],
     howItWorks: [
@@ -361,7 +361,7 @@ export const seoLandingPages = [
     whyParagraphs: [
       "GTO poker can feel intimidating because many players first meet it through charts, solver trees, and abstract frequencies. Those tools are useful, but they do not automatically teach you how to think during a real hand. A practical GTO poker coach should translate the ideas into decisions: which range has advantage, what size makes sense, what hands call, and which bluffs are believable.",
       "Kevixo is built around that translation. It does not try to replace a solver or claim every output is a perfect equilibrium solution. Instead, it uses GTO-inspired thinking to explain why one line is more disciplined than another. The report points to range interaction, blockers, pot odds, board texture, and value-to-bluff balance in language that is easier to apply.",
-      "This matters because most players do not lose money from lacking a memorized chart in every node. They lose money because they call without naming bluffs, bet without a purpose, miss thin value, or choose sizes that do not match the range story. Kevixo helps identify those mistakes and connect them to a better decision process.",
+      "This matters because most players do not struggle from lacking a memorized chart in every node. They struggle because they call without naming bluffs, bet without a purpose, miss thin value, or choose sizes that do not match the range story. Kevixo helps identify those mistakes and connect them to a better decision process.",
       "A GTO-inspired coach is most useful when it changes your next action. If the lesson is river bluff-catching, the next-time checklist might ask you to name value hands, list natural bluffs, and fold if the bluff list is too short. That is a practical bridge between theory and table behavior.",
     ],
     howItWorks: [
@@ -384,7 +384,7 @@ export const seoLandingPages = [
     studyNotes: {
       title: "How to turn GTO ideas into table decisions",
       paragraphs: [
-        "GTO language becomes valuable when it changes a real decision. A player does not need to recite a full solver tree to improve. They need to understand whether a range has enough strong hands, whether a bet size creates pressure, whether a blocker matters, and whether a call needs more bluffs to be profitable. Kevixo uses these ideas as coaching tools rather than as abstract theory.",
+        "GTO language becomes valuable when it changes a real decision. A player does not need to recite a full solver tree to improve. They need to understand whether a range has enough strong hands, whether a bet size creates pressure, whether a blocker matters, and whether a call has enough bluff evidence. Kevixo uses these ideas as coaching tools rather than as abstract theory.",
         "For example, a river bluff-catch is not solved by saying you have top pair. The better question is whether the opponent arrives with enough missed draws or overplayed value hands for the call to perform well. That is a GTO-inspired question because it compares range composition and price, but the practical output is simple: call only when the bluff evidence is strong enough.",
         "The same approach applies to betting. A good bet should have a reason. It may get value from worse hands, deny equity to overcards, fold out better hands, or set up a river. If the hand review cannot name that reason, the bet may be more emotional than strategic. Kevixo makes that purpose visible so players can stop clicking buttons out of habit.",
         "The best coaching connects theory to memory. If the report tells you to list value hands before bluff-catching, that is a table-ready rule. If it tells you to choose turn barrels with equity and blockers, that is another rule. Over time, these rules help you develop GTO-informed instincts without needing to study every possible branch before you can improve.",
@@ -397,7 +397,7 @@ export const seoLandingPages = [
       {
         title: "Plain-language GTO concepts",
         description:
-          "Learn ideas like range advantage and polarized betting through hands you actually played.",
+          "Learn ideas like range advantage and polarized sizing through hands you actually played.",
       },
       {
         title: "Better bluff-catching discipline",
@@ -405,7 +405,7 @@ export const seoLandingPages = [
           "Review river calls by comparing value hands, natural bluffs, blockers, and price.",
       },
       {
-        title: "More purposeful betting",
+        title: "More purposeful sizing",
         description:
           "Understand whether a bet targets worse calls, folds out better hands, denies equity, or sets up a later street.",
       },
@@ -465,7 +465,7 @@ export const seoLandingPages = [
       "Kevixo reviews individual hands, identifies likely leaks, and gives you a practical way to improve one recurring mistake at a time.",
     whyTitle: "Why leak finding starts with one hand",
     whyParagraphs: [
-      "A poker leak is not just one bad result. It is a decision pattern that quietly costs money across many sessions. You may overcall rivers, avoid thin value, bluff turns without enough equity, or check back too many flops in position. These mistakes are hard to see while playing because each hand feels unique. A poker leak finder helps connect those decisions into patterns.",
+      "A poker leak is not just one bad result. It is a decision pattern that quietly repeats across many sessions. You may overcall rivers, avoid thin value, bluff turns without enough equity, or check back too many flops in position. These mistakes are hard to see while playing because each hand feels unique. A poker leak finder helps connect those decisions into patterns.",
       "Kevixo starts with a single hand because that is where the behavior is visible. The review identifies the biggest mistake, the likely leak, and the better decision. Then it gives a short homework task so the next session has a clear focus. Over time, multiple reviews can reveal whether the same leak keeps appearing.",
       "Leak detection is most useful when it is specific. Telling a player to play better postflop is too vague. Telling a player that they overcall large river bets without naming enough bluffs is actionable. Kevixo aims for that level of coaching. The report gives you a leak label, evidence from the hand, and a checklist for the next time the spot appears.",
       "This is especially helpful for players who study but still feel stuck. You may know many concepts yet still repeat the same high-cost decisions under pressure. Kevixo narrows the improvement target so you can practice the exact trigger that matters: a turn barrel, a river fold, a value bet, or a preflop range discipline issue.",
@@ -553,9 +553,9 @@ export const seoLandingPages = [
           "Start with one repeatable trigger. Kevixo gives a checklist and homework so you can practice the better decision in future sessions.",
       },
       {
-        question: "Is leak detection useful for winning players?",
+        question: "Is leak detection useful for experienced players?",
         answer:
-          "Yes. Even winning players can lose value through repeated small mistakes, especially in river decisions, bet sizing, and missed value spots.",
+          "Yes. Even experienced players can miss value through repeated small mistakes, especially in river decisions, bet sizing, and missed value spots.",
       },
     ],
   },

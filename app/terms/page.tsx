@@ -27,8 +27,8 @@ export default function TermsPage() {
           <div className="mt-4 space-y-4 text-sm leading-7 text-slate-400">
             <p>
               Kevixo provides AI-generated poker coaching for educational purposes.
-              It is not a guarantee of profit, a gambling service, or a replacement
-              for your own judgment at the table.
+              It is not a guarantee of outcomes, a betting platform, or a replacement
+              for your own judgment during study or gameplay.
             </p>
             <p>
               Poker decisions depend on incomplete information, player tendencies,

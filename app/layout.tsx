@@ -6,8 +6,9 @@ import "./globals.css";
 
 const siteUrl = "https://www.kevixo.com";
 const siteName = "Kevixo";
-const title = "Kevixo | Every Hand Makes You Better.";
-const description = "AI-powered poker coaching that helps you improve one decision at a time.";
+const title = "Kevixo - AI Poker Hand Review & Coaching";
+const description =
+  "Kevixo is an AI poker coaching platform that helps players review hands, analyze decisions, and improve their strategy with clear explanations.";
 const ogImage = "/brand/og-image.png";
 
 const structuredData = {
@@ -78,7 +79,7 @@ export const metadata: Metadata = {
         url: ogImage,
         width: 1200,
         height: 630,
-        alt: "Kevixo - Every Hand Makes You Better.",
+        alt: "Kevixo - AI Poker Hand Review & Coaching",
       },
     ],
   },

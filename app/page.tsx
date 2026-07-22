@@ -16,7 +16,6 @@ const valueProps = [
 
 const exampleReview = {
   grade: "B-",
-  confidence: 92,
   biggestMistake:
     "Calling a large river bet before naming enough natural bluffs in villain's range.",
   betterDecision:
@@ -27,7 +26,7 @@ const exampleReview = {
 
 const benefits = [
   {
-    title: "Make fewer expensive guesses",
+    title: "Make clearer close decisions",
     description:
       "Turn confusing river, turn, and 3-bet spots into a clear decision you can repeat next session.",
   },
@@ -265,7 +264,7 @@ function ExampleReviewSection() {
         <Card className="border-primary/25 bg-slate-950/62 p-5 md:p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <ExampleMetric label="Grade" value={exampleReview.grade} />
-            <ExampleMetric label="Confidence" value={`${exampleReview.confidence}%`} />
+            <ExampleMetric label="Focus" value="River decision" />
           </div>
           <div className="mt-5 grid gap-4">
             <ExampleBlock label="Biggest Mistake" value={exampleReview.biggestMistake} />
@@ -413,6 +412,8 @@ function BlogPreviewSection() {
 function Footer() {
   const footerLinks = [
     { label: "Blog", href: "/blog" },
+    { label: "About", href: "/about" },
+    { label: "Pricing", href: "/pricing" },
     { label: "Review", href: "/review" },
     { label: "Profile", href: "/profile" },
     { label: "Progress", href: "/progress" },
