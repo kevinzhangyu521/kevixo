@@ -350,7 +350,7 @@ function KevixoProSection() {
             </p>
             <div className="mt-6">
               <Button asChild>
-                <Link href="mailto:hello@kevixo.com?subject=Kevixo%20Pro%20Waitlist">
+                <Link href="mailto:support@kevixo.com?subject=Kevixo%20Pro%20Waitlist">
                   Join Waitlist
                 </Link>
               </Button>
@@ -420,7 +420,7 @@ function Footer() {
     { label: "Poker Hand Analyzer", href: "/poker-hand-analyzer" },
     { label: "Privacy", href: "/privacy" },
     { label: "Terms", href: "/terms" },
-    { label: "Contact", href: "mailto:hello@kevixo.com" },
+    { label: "Contact", href: "mailto:support@kevixo.com" },
   ];
 
   return (

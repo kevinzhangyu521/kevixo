@@ -42,8 +42,8 @@ export default function PrivacyPage() {
             <p>
               Feedback may include optional email if you choose to provide it. If you
               want to ask about data or product feedback, contact{" "}
-              <a className="text-primary" href="mailto:hello@kevixo.com">
-                hello@kevixo.com
+              <a className="text-primary" href="mailto:support@kevixo.com">
+                support@kevixo.com
               </a>
               .
             </p>

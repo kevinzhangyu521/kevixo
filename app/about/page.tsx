@@ -109,7 +109,7 @@ export default function AboutPage() {
             <Link href="/review">Analyze a Hand</Link>
           </Button>
           <Button asChild variant="secondary">
-            <Link href="mailto:hello@kevixo.com">Contact Kevixo</Link>
+            <Link href="mailto:support@kevixo.com">Contact Kevixo</Link>
           </Button>
         </div>
       </section>
