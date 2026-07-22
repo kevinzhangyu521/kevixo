@@ -4,9 +4,9 @@ import { SiteHeader } from "@/components/site-header";
 import { Card, CardTitle } from "@/components/ui/card";
 import { blogArticles } from "@/lib/blog";
 
-const title = "Poker Strategy Blog | Kevixo";
+const title = "Poker Hand Review Blog | Kevixo";
 const description =
-  "Poker hand review guides, hand history basics, and AI coaching articles for beginner and intermediate poker players.";
+  "Beginner-friendly poker hand review guides, hand history tutorials, and AI coaching articles for studying poker decisions.";
 const siteUrl = "https://www.kevixo.com";
 const pageUrl = `${siteUrl}/blog`;
 
@@ -50,11 +50,11 @@ export default function BlogPage() {
             Kevixo Blog
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 md:text-6xl">
-            Poker study guides for better decisions
+            Poker hand review guides for better decisions
           </h1>
           <p className="mt-4 text-base leading-7 text-slate-400">
             Practical articles on hand reviews, hand histories, and AI poker coaching.
-            Built for players who want clearer decisions, not casino noise.
+            Built for players who want clearer decisions and better study habits.
           </p>
         </div>
 
