@@ -3,11 +3,13 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardTitle } from "@/components/ui/card";
 
+const siteUrl = "https://www.kevixo.com";
+
 export const metadata: Metadata = {
   title: "Terms | Kevixo",
   description: "Kevixo terms overview for AI poker hand review users.",
   alternates: {
-    canonical: "/terms",
+    canonical: `${siteUrl}/terms`,
   },
 };
 

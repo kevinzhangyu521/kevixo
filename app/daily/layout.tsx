@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+const siteUrl = "https://www.kevixo.com";
+const pageUrl = `${siteUrl}/daily`;
+
 export const metadata: Metadata = {
   title: "Daily Poker Challenge | Kevixo",
   description:
     "Practice one poker decision each day with a short Kevixo coaching explanation.",
   alternates: {
-    canonical: "https://www.kevixo.com/daily",
+    canonical: pageUrl,
   },
   openGraph: {
     title: "Daily Poker Challenge | Kevixo",
     description:
       "Practice one poker decision each day with a short Kevixo coaching explanation.",
-    url: "https://www.kevixo.com/daily",
+    url: pageUrl,
     siteName: "Kevixo",
-    images: [{ url: "/brand/og-image.png", width: 1200, height: 630 }],
+    images: [{ url: `${siteUrl}/brand/og-image.png`, width: 1200, height: 630 }],
     type: "website",
   },
   twitter: {
@@ -22,7 +25,7 @@ export const metadata: Metadata = {
     title: "Daily Poker Challenge | Kevixo",
     description:
       "Practice one poker decision each day with a short Kevixo coaching explanation.",
-    images: ["/brand/og-image.png"],
+    images: [`${siteUrl}/brand/og-image.png`],
   },
 };
 

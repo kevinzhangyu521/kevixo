@@ -7,22 +7,24 @@ import { blogArticles } from "@/lib/blog";
 const title = "Poker Strategy Blog | Kevixo";
 const description =
   "Poker hand review guides, hand history basics, and AI coaching articles for beginner and intermediate poker players.";
+const siteUrl = "https://www.kevixo.com";
+const pageUrl = `${siteUrl}/blog`;
 
 export const metadata: Metadata = {
   title,
   description,
   alternates: {
-    canonical: "/blog",
+    canonical: pageUrl,
   },
   openGraph: {
     title,
     description,
-    url: "https://www.kevixo.com/blog",
+    url: pageUrl,
     siteName: "Kevixo",
     type: "website",
     images: [
       {
-        url: "/brand/og-image.png",
+        url: `${siteUrl}/brand/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Kevixo poker coaching articles",
@@ -33,7 +35,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/brand/og-image.png"],
+    images: [`${siteUrl}/brand/og-image.png`],
   },
 };
 

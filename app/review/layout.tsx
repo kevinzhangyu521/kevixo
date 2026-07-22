@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title,
   description,
   alternates: {
-    canonical: "/review",
+    canonical: `${siteUrl}/review`,
   },
   openGraph: {
     title,
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/brand/og-image.png",
+        url: `${siteUrl}/brand/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Kevixo - Every Hand Makes You Better.",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/brand/og-image.png"],
+    images: [`${siteUrl}/brand/og-image.png`],
   },
 };
 

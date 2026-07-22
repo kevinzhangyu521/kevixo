@@ -4,20 +4,23 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 
+const siteUrl = "https://www.kevixo.com";
+const pageUrl = `${siteUrl}/about`;
+
 export const metadata: Metadata = {
   title: "About Kevixo | AI Poker Hand Review & Coaching",
   description:
     "Kevixo is an AI-powered poker coaching platform for reviewing hands, understanding decisions, and building better study habits.",
   alternates: {
-    canonical: "/about",
+    canonical: pageUrl,
   },
   openGraph: {
     title: "About Kevixo | AI Poker Hand Review & Coaching",
     description:
       "Learn how Kevixo helps poker learners review hands, analyze decisions, and build better study habits through software-based coaching.",
-    url: "/about",
+    url: pageUrl,
     siteName: "Kevixo",
-    images: [{ url: "/brand/og-image.png", width: 1200, height: 630 }],
+    images: [{ url: `${siteUrl}/brand/og-image.png`, width: 1200, height: 630 }],
     type: "website",
   },
   twitter: {
@@ -25,7 +28,7 @@ export const metadata: Metadata = {
     title: "About Kevixo | AI Poker Hand Review & Coaching",
     description:
       "Kevixo is an AI-powered poker coaching platform focused on education, analysis, and better study habits.",
-    images: ["/brand/og-image.png"],
+    images: [`${siteUrl}/brand/og-image.png`],
   },
 };
 

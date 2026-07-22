@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     title,
     description,
     alternates: {
-      canonical: path,
+      canonical: `${siteUrl}${path}`,
     },
     openGraph: {
       title,
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
       type: "article",
       images: [
         {
-          url: `${path}/opengraph-image`,
+          url: `${siteUrl}${path}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: "Kevixo AI poker review summary",
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
       card: "summary_large_image",
       title,
       description,
-      images: [`${path}/opengraph-image`],
+      images: [`${siteUrl}${path}/opengraph-image`],
     },
   };
 }

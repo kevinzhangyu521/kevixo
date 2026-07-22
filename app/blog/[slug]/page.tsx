@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: BlogArticlePageProps): Promis
     title: `${article.title} | Kevixo`,
     description: article.description,
     alternates: {
-      canonical: `/blog/${article.slug}`,
+      canonical: url,
     },
     openGraph: {
       title: article.title,
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: BlogArticlePageProps): Promis
       modifiedTime: article.updatedAt,
       images: [
         {
-          url: "/brand/og-image.png",
+          url: "https://www.kevixo.com/brand/og-image.png",
           width: 1200,
           height: 630,
           alt: article.title,
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: BlogArticlePageProps): Promis
       card: "summary_large_image",
       title: article.title,
       description: article.description,
-      images: ["/brand/og-image.png"],
+      images: ["https://www.kevixo.com/brand/og-image.png"],
     },
   };
 }

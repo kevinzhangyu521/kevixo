@@ -9,7 +9,7 @@ const siteName = "Kevixo";
 const title = "Kevixo - AI Poker Hand Review & Coaching";
 const description =
   "Kevixo is an AI poker coaching platform that helps players review hands, analyze decisions, and improve their strategy with clear explanations.";
-const ogImage = "/brand/og-image.png";
+const ogImage = `${siteUrl}/brand/og-image.png`;
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   title,
   description,
   alternates: {
-    canonical: "/",
+    canonical: siteUrl,
   },
   robots: {
     index: true,

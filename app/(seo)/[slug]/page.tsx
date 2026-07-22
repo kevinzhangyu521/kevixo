@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: SeoLandingPageProps): Promise
     title: page.metaTitle,
     description: page.metaDescription,
     alternates: {
-      canonical: `/${page.slug}`,
+      canonical: url,
     },
     openGraph: {
       title: page.metaTitle,
@@ -70,7 +70,7 @@ export async function generateMetadata({ params }: SeoLandingPageProps): Promise
       type: "website",
       images: [
         {
-          url: "/brand/og-image.png",
+          url: "https://www.kevixo.com/brand/og-image.png",
           width: 1200,
           height: 630,
           alt: page.title,
@@ -81,7 +81,7 @@ export async function generateMetadata({ params }: SeoLandingPageProps): Promise
       card: "summary_large_image",
       title: page.metaTitle,
       description: page.metaDescription,
-      images: ["/brand/og-image.png"],
+      images: ["https://www.kevixo.com/brand/og-image.png"],
     },
   };
 }
