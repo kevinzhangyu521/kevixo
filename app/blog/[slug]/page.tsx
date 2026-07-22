@@ -133,6 +133,7 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
           ))}
 
           {article.slug === "poker-hand-history-guide" ? <HandReviewGuideLink /> : null}
+          {article.slug === "ai-poker-coach" ? <AiCoachRelatedGuides /> : null}
         </div>
 
         <Card className="mt-10 border-primary/20 bg-slate-950/58 p-5 md:p-6">
@@ -164,6 +165,32 @@ function HandReviewGuideLink() {
       >
         Read How to Review Poker Hands
       </Link>
+    </Card>
+  );
+}
+
+function AiCoachRelatedGuides() {
+  return (
+    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
+      <CardTitle>Related study guides</CardTitle>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        AI coaching works best when you understand the hand record and use a clear
+        decision review process.
+      </p>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <Link
+          href="/blog/poker-hand-history-guide"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          Read the hand history guide
+        </Link>
+        <Link
+          href="/blog/how-to-review-poker-hands"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          Read the hand review guide
+        </Link>
+      </div>
     </Card>
   );
 }
