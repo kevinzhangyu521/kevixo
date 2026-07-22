@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AccountNav } from "@/components/account-nav";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
 type SiteHeaderProps = {
@@ -12,34 +14,56 @@ type SiteHeaderProps = {
   larger?: boolean;
 };
 
-const navigationItems = [
+const primaryNavigationItems = [
   { label: "Analyzer", href: "/review", match: ["/review"] },
+  { label: "Pricing", href: "/pricing", match: ["/pricing"] },
+  { label: "Blog", href: "/blog", match: ["/blog"] },
+  { label: "About", href: "/about", match: ["/about"] },
+];
+
+const userNavigationItems = [
   { label: "My Reviews", href: "/my-reviews", match: ["/my-reviews"] },
-  { label: "Profile", href: "/profile", match: ["/profile"] },
   { label: "Progress", href: "/progress", match: ["/progress"] },
   { label: "Daily", href: "/daily", match: ["/daily"] },
-  { label: "Pricing", href: "/pricing", match: ["/pricing"] },
-  { label: "About", href: "/about", match: ["/about"] },
-  { label: "Blog", href: "/blog", match: ["/blog"] },
+  { label: "Profile", href: "/profile", match: ["/profile"] },
 ];
 
 const visibilityByLabel: Record<string, string> = {
-  Analyzer: "md:inline-flex",
-  "My Reviews": "md:inline-flex",
-  Profile: "lg:inline-flex",
-  Progress: "lg:inline-flex",
-  Daily: "lg:inline-flex",
-  Pricing: "md:inline-flex",
-  About: "md:inline-flex",
+  Analyzer: "lg:inline-flex",
+  Pricing: "lg:inline-flex",
   Blog: "sm:inline-flex",
+  About: "lg:inline-flex",
+  "My Reviews": "xl:inline-flex",
+  Progress: "xl:inline-flex",
+  Daily: "xl:inline-flex",
+  Profile: "xl:inline-flex",
 };
 
 export function SiteHeader({
   ctaHref = "/import",
-  ctaLabel = "Import Hand",
+  ctaLabel = "Analyze My Hand",
   larger = false,
 }: SiteHeaderProps) {
   const pathname = usePathname();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+
+    void supabase.auth.getSession().then(({ data }) => {
+      setIsLoggedIn(Boolean(data.session));
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(Boolean(session));
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   return (
     <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 md:py-8">
@@ -57,43 +81,59 @@ export function SiteHeader({
         />
         <span className="sr-only">Kevixo</span>
       </Link>
-      <div className="flex items-center gap-4">
-        {navigationItems.map((item) => {
-          const isActive = item.match.some(
-            (path) => pathname === path || pathname.startsWith(`${path}/`),
-          );
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "hidden rounded-xl border px-3 py-1.5 text-sm font-medium transition duration-200 hover:border-primary/30 hover:bg-slate-900/45 hover:text-slate-200",
-                visibilityByLabel[item.label],
-                isActive
-                  ? "border-primary/30 bg-primary/10 text-primary shadow-[0_0_18px_rgba(59,201,255,0.08)]"
-                  : "border-transparent text-slate-500",
-              )}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+      <div className="flex items-center gap-2 md:gap-3">
+        <nav className="flex items-center gap-1 md:gap-1.5" aria-label="Primary navigation">
+          {primaryNavigationItems.map((item) => (
+            <NavigationLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </nav>
+        {isLoggedIn ? (
+          <nav className="hidden items-center gap-1 border-l border-slate-800/80 pl-2 xl:flex">
+            {userNavigationItems.map((item) => (
+              <NavigationLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </nav>
+        ) : null}
         <Link
           href="/pricing"
-          className="hidden rounded-xl border border-primary/35 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-primary/15 md:inline-flex"
+          className="hidden whitespace-nowrap rounded-xl border border-primary/35 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-primary/15 md:inline-flex"
         >
           Upgrade
         </Link>
         <AccountNav />
         <Link
           href={ctaHref}
-          className="rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:text-slate-50 hover:shadow-[0_0_28px_rgba(59,201,255,0.12)]"
+          className="whitespace-nowrap rounded-xl border border-slate-800 bg-slate-950/30 px-4 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:text-slate-50 hover:shadow-[0_0_28px_rgba(59,201,255,0.12)]"
         >
           {ctaLabel}
         </Link>
       </div>
     </header>
+  );
+}
+
+type NavigationItem = {
+  label: string;
+  href: string;
+  match: string[];
+};
+
+function NavigationLink({ item, pathname }: { item: NavigationItem; pathname: string }) {
+  const isActive = item.match.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
+
+  return (
+    <Link
+      href={item.href}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "hidden rounded-lg px-2.5 py-1.5 text-sm font-medium transition duration-200 hover:bg-slate-900/45 hover:text-slate-200",
+        visibilityByLabel[item.label],
+        isActive ? "bg-slate-900/55 text-slate-50" : "text-slate-500",
+      )}
+    >
+      {item.label}
+    </Link>
   );
 }
