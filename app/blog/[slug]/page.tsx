@@ -131,6 +131,8 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
           {article.paragraphs.slice(5).map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
           ))}
+
+          {article.slug === "poker-hand-history-guide" ? <HandReviewGuideLink /> : null}
         </div>
 
         <Card className="mt-10 border-primary/20 bg-slate-950/58 p-5 md:p-6">
@@ -145,6 +147,24 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
         </Card>
       </article>
     </main>
+  );
+}
+
+function HandReviewGuideLink() {
+  return (
+    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
+      <CardTitle>Next guide: review the decision</CardTitle>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        Once you understand the hand history record, use Kevixo&apos;s hand review
+        framework to study the key decision, ranges, sizing, and next-time lesson.
+      </p>
+      <Link
+        href="/blog/how-to-review-poker-hands"
+        className="mt-5 inline-flex text-sm font-semibold text-primary hover:text-sky-200"
+      >
+        Read How to Review Poker Hands
+      </Link>
+    </Card>
   );
 }
 
