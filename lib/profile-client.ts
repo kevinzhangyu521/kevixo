@@ -23,6 +23,9 @@ type ProfileRow = {
   email: string;
   display_name: string | null;
   avatar_url: string | null;
+  role?: "user" | "admin" | null;
+  plan?: "free" | "pro" | null;
+  status?: "active" | "disabled" | null;
   created_at: string;
   updated_at: string;
 };
@@ -47,7 +50,7 @@ export async function getCurrentUserProfile() {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, display_name, avatar_url, created_at, updated_at")
+    .select("id, email, display_name, avatar_url, role, plan, status, created_at, updated_at")
     .eq("id", userData.user.id)
     .maybeSingle<ProfileRow>();
 
@@ -85,7 +88,7 @@ export async function ensureUserProfile() {
       },
       { onConflict: "id" },
     )
-    .select("id, email, display_name, avatar_url, created_at, updated_at")
+    .select("id, email, display_name, avatar_url, role, plan, status, created_at, updated_at")
     .single<ProfileRow>();
 
   if (profileError) {
@@ -93,7 +96,7 @@ export async function ensureUserProfile() {
       const { data: legacyProfile, error: legacyProfileError } = await supabase
         .from("profiles")
         .upsert(baseProfilePayload, { onConflict: "id" })
-        .select("id, email, display_name, avatar_url, created_at, updated_at")
+        .select("id, email, display_name, avatar_url, role, plan, status, created_at, updated_at")
         .single<ProfileRow>();
 
       if (legacyProfileError) {
@@ -133,7 +136,7 @@ export async function updateUserProfile({
       updated_at: new Date().toISOString(),
     })
     .eq("id", profile.id)
-    .select("id, email, display_name, avatar_url, created_at, updated_at")
+    .select("id, email, display_name, avatar_url, role, plan, status, created_at, updated_at")
     .single<ProfileRow>();
 
   if (error) {
@@ -191,6 +194,9 @@ function fromRow(row: ProfileRow): UserProfile {
     email: row.email,
     displayName: row.display_name ?? undefined,
     avatarUrl: row.avatar_url ?? undefined,
+    role: row.role ?? undefined,
+    plan: row.plan ?? undefined,
+    status: row.status ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
