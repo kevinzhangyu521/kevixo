@@ -66,6 +66,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: "https://www.kevixo.com/ai-poker-coach",
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
     ...seoLandingPages.map((page) => ({
       url: getSeoLandingPageUrl(page.slug),
       lastModified,
