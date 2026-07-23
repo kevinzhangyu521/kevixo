@@ -1,11 +1,11 @@
 import { AuthPageForm } from "@/components/auth-page-form";
 import { SiteHeader } from "@/components/site-header";
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader />
-      <AuthPageForm mode="sign-in" />
+      <AuthPageForm mode="reset" />
     </main>
   );
 }

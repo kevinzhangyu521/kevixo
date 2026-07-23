@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
 export function AccountNav() {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const mode = searchParams.get("mode");
-  const isLoginActive = pathname === "/login" && mode !== "sign-up";
-  const isSignUpActive = pathname === "/signup" || (pathname === "/login" && mode === "sign-up");
+  const isLoginActive = pathname === "/login";
+  const isSignUpActive = pathname === "/signup";
+  const isResetPasswordRoute = pathname === "/reset-password";
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -69,26 +69,44 @@ export function AccountNav() {
 
   return (
     <div className="flex items-center gap-1 md:gap-1.5">
-      <Link
-        href="/login"
-        aria-current={isLoginActive ? "page" : undefined}
-        className={cn(
-          "rounded-lg px-2.5 py-1.5 text-sm font-medium transition duration-200 hover:bg-slate-900/45 hover:text-slate-200",
-          isLoginActive ? "bg-slate-900/55 text-slate-50" : "text-slate-500",
-        )}
-      >
-        Login
-      </Link>
-      <Link
-        href="/login?mode=sign-up"
-        aria-current={isSignUpActive ? "page" : undefined}
-        className={cn(
-          "rounded-lg px-2.5 py-1.5 text-sm font-medium transition duration-200 hover:bg-slate-900/45 hover:text-slate-200",
-          isSignUpActive ? "bg-slate-900/55 text-slate-50" : "text-slate-500",
-        )}
-      >
-        Sign up
-      </Link>
+      {pathname !== "/signup" ? (
+        <AuthNavLink href="/login" active={isLoginActive}>
+          Login
+        </AuthNavLink>
+      ) : null}
+      {pathname !== "/login" && !isResetPasswordRoute ? (
+        <AuthNavLink href="/signup" active={isSignUpActive}>
+          Sign up
+        </AuthNavLink>
+      ) : null}
+      {pathname === "/login" ? (
+        <AuthNavLink href="/signup" active={false}>
+          Sign up
+        </AuthNavLink>
+      ) : null}
     </div>
+  );
+}
+
+function AuthNavLink({
+  active,
+  children,
+  href,
+}: {
+  active: boolean;
+  children: ReactNode;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "rounded-lg px-2.5 py-1.5 text-sm font-medium transition duration-200 hover:bg-slate-900/45 hover:text-slate-200",
+        active ? "bg-slate-900/55 text-slate-50" : "text-slate-500",
+      )}
+    >
+      {children}
+    </Link>
   );
 }

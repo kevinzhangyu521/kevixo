@@ -45,7 +45,8 @@ export function SiteHeader({
   larger = false,
 }: SiteHeaderProps) {
   const pathname = usePathname();
-  const isAuthRoute = pathname === "/login" || pathname === "/signup";
+  const isAuthRoute =
+    pathname === "/login" || pathname === "/signup" || pathname === "/reset-password";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
