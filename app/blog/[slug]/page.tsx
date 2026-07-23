@@ -133,6 +133,9 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
           {article.slug === "ai-poker-coach" ? <AiCoachRelatedGuides /> : null}
           {article.slug === "poker-mistakes-beginners" ? <BeginnerMistakesRelatedGuides /> : null}
           {article.slug === "gto-poker-strategy" ? <GtoRelatedGuides /> : null}
+          {article.slug === "poker-hand-analysis-framework" ? (
+            <HandAnalysisFrameworkRelatedGuides />
+          ) : null}
         </div>
 
         <Card className="mt-10 border-primary/20 bg-slate-950/58 p-5 md:p-6">
@@ -252,6 +255,44 @@ function GtoRelatedGuides() {
           className="text-sm font-semibold text-primary hover:text-sky-200"
         >
           AI coach guide
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
+function HandAnalysisFrameworkRelatedGuides() {
+  return (
+    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
+      <CardTitle>Continue the hand analysis path</CardTitle>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        Use these guides to deepen your poker hand analysis with better records,
+        structured review, AI coaching, and strategy concepts.
+      </p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/blog/how-to-review-poker-hands"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          Poker hand review guide
+        </Link>
+        <Link
+          href="/blog/poker-hand-history-guide"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          Hand history analysis guide
+        </Link>
+        <Link
+          href="/blog/ai-poker-coach"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          AI poker coaching guide
+        </Link>
+        <Link
+          href="/blog/gto-poker-strategy"
+          className="text-sm font-semibold text-primary hover:text-sky-200"
+        >
+          GTO strategy guide
         </Link>
       </div>
     </Card>
