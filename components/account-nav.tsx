@@ -60,7 +60,7 @@ export function AccountNav() {
       <div className="flex items-center gap-2 md:gap-3">
         {isAdmin ? (
           <Link
-            href="/admin/users"
+            href="/admin"
             className={cn(
               "rounded-lg px-2.5 py-1.5 text-sm font-medium transition duration-200 hover:bg-slate-900/45 hover:text-slate-200",
               pathname.startsWith("/admin") ? "bg-slate-900/55 text-slate-50" : "text-slate-500",
