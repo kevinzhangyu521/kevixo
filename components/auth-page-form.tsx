@@ -123,6 +123,9 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
+          options: {
+            emailRedirectTo: `${getPublicSiteUrl()}/auth/callback`,
+          },
         });
 
         if (error) {
@@ -306,4 +309,18 @@ function getRedirectPath() {
   }
 
   return new URLSearchParams(window.location.search).get("redirect") ?? "/review";
+}
+
+function getPublicSiteUrl() {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+
+  if (configuredSiteUrl) {
+    return configuredSiteUrl;
+  }
+
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
+  return "https://www.kevixo.com";
 }
