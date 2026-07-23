@@ -74,5 +74,13 @@ function normalizeSupabaseProjectUrl(value: string | undefined) {
 }
 
 function readRuntimeEnv(name: string) {
-  return process.env[name]?.trim();
+  if (name === "NEXT_PUBLIC_SUPABASE_URL") {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  }
+
+  if (name === "NEXT_PUBLIC_SUPABASE_ANON_KEY") {
+    return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  }
+
+  return undefined;
 }
