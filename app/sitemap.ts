@@ -60,6 +60,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: "https://www.kevixo.com/poker-hand-analyzer",
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
     ...seoLandingPages.map((page) => ({
       url: getSeoLandingPageUrl(page.slug),
       lastModified,
