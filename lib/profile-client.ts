@@ -7,6 +7,9 @@ export type UserProfile = {
   email: string;
   displayName?: string;
   avatarUrl?: string;
+  role?: "user" | "admin";
+  plan?: "free" | "pro";
+  status?: "active" | "disabled";
   createdAt: string;
   updatedAt: string;
 };
@@ -32,7 +35,11 @@ export async function getCurrentUserProfile() {
     return null;
   }
 
-  await ensureUserProfile();
+  try {
+    await ensureUserProfile();
+  } catch (error) {
+    throw new Error("Account setup failed. Please try again.", { cause: error });
+  }
 
   const { data, error } = await supabase
     .from("profiles")
@@ -60,13 +67,17 @@ export async function ensureUserProfile() {
   }
 
   const now = new Date().toISOString();
+  const baseProfilePayload = {
+    id: data.user.id,
+    email: data.user.email ?? "",
+    updated_at: now,
+  };
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .upsert(
       {
-        id: data.user.id,
-        email: data.user.email ?? "",
-        updated_at: now,
+        ...baseProfilePayload,
+        user_id: data.user.id,
       },
       { onConflict: "id" },
     )
@@ -74,7 +85,23 @@ export async function ensureUserProfile() {
     .single<ProfileRow>();
 
   if (profileError) {
-    throw new Error(profileError.message);
+    if (isMissingUserIdColumnError(profileError)) {
+      const { data: legacyProfile, error: legacyProfileError } = await supabase
+        .from("profiles")
+        .upsert(baseProfilePayload, { onConflict: "id" })
+        .select("id, email, display_name, avatar_url, created_at, updated_at")
+        .single<ProfileRow>();
+
+      if (legacyProfileError) {
+        throw new Error("Account setup failed. Please try again.", {
+          cause: legacyProfileError,
+        });
+      }
+
+      return fromRow(legacyProfile);
+    }
+
+    throw new Error("Account setup failed. Please try again.", { cause: profileError });
   }
 
   return fromRow(profile);
@@ -121,4 +148,14 @@ function fromRow(row: ProfileRow): UserProfile {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function isMissingUserIdColumnError(error: { code?: string; message?: string }) {
+  const message = error.message?.toLowerCase() ?? "";
+
+  return (
+    error.code === "PGRST204" ||
+    error.code === "42703" ||
+    message.includes("user_id") && message.includes("column")
+  );
 }

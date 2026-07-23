@@ -131,7 +131,9 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
           try {
             await ensureUserProfile();
           } catch (profileError) {
-            console.warn("Kevixo profile setup will retry later.", profileError);
+            console.warn("Kevixo profile setup failed.", profileError);
+            setStatus("Account setup failed. Please try again.");
+            return;
           }
 
           window.setTimeout(() => {
@@ -160,7 +162,9 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
       try {
         await ensureUserProfile();
       } catch (profileError) {
-        console.warn("Kevixo profile setup will retry later.", profileError);
+        console.warn("Kevixo profile setup failed.", profileError);
+        setStatus("Account setup failed. Please try again.");
+        return;
       }
 
       router.push(getRedirectPath());
