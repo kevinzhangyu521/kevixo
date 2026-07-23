@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = normalizeSupabaseProjectUrl(readRuntimeEnv("NEXT_PUBLIC_SUPABASE_URL"));
+const supabaseUrlResult = readSupabaseProjectUrl();
+const supabaseUrl = supabaseUrlResult.url;
 const supabaseAnonKey = readRuntimeEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
@@ -13,6 +14,37 @@ export function getSupabaseClient() {
   }
 
   return createClient(supabaseUrl, supabaseAnonKey);
+}
+
+export function getSupabaseConfigurationError() {
+  const missingVariables = [
+    supabaseUrl ? "" : "NEXT_PUBLIC_SUPABASE_URL",
+    supabaseAnonKey ? "" : "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ].filter(Boolean);
+
+  if (supabaseUrlResult.error) {
+    return supabaseUrlResult.error;
+  }
+
+  if (missingVariables.length > 0) {
+    return `Supabase public config missing: ${missingVariables.join(", ")}.`;
+  }
+
+  return undefined;
+}
+
+function readSupabaseProjectUrl() {
+  try {
+    return {
+      url: normalizeSupabaseProjectUrl(readRuntimeEnv("NEXT_PUBLIC_SUPABASE_URL")),
+      error: undefined,
+    };
+  } catch (error) {
+    return {
+      url: undefined,
+      error: error instanceof Error ? error.message : "Supabase URL is invalid.",
+    };
+  }
 }
 
 function normalizeSupabaseProjectUrl(value: string | undefined) {

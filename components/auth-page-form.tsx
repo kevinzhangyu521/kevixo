@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ensureUserProfile } from "@/lib/profile-client";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import {
+  getSupabaseClient,
+  getSupabaseConfigurationError,
+  isSupabaseConfigured,
+} from "@/lib/supabase";
 
 type AuthMode = "sign-in" | "sign-up" | "reset";
 
@@ -77,7 +81,7 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
     event.preventDefault();
 
     if (!isSupabaseConfigured) {
-      setStatus("Accounts are not configured yet.");
+      setStatus(getSupabaseConfigurationError() ?? "Supabase public config is not available.");
       return;
     }
 

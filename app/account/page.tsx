@@ -12,7 +12,11 @@ import {
   updateUserProfile,
   type UserProfile,
 } from "@/lib/profile-client";
-import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
+import {
+  getSupabaseClient,
+  getSupabaseConfigurationError,
+  isSupabaseConfigured,
+} from "@/lib/supabase";
 import type { Subscription } from "@/lib/subscription";
 
 export default function AccountPage() {
@@ -27,7 +31,7 @@ export default function AccountPage() {
 
   const loadAccount = useCallback(async () => {
     if (!isSupabaseConfigured) {
-      setStatus("Accounts are not configured yet.");
+      setStatus(getSupabaseConfigurationError() ?? "Supabase public config is not available.");
       return;
     }
 
