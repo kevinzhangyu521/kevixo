@@ -240,3 +240,67 @@ export function getBlogArticle(slug: string) {
 export function getBlogArticleUrl(slug: string) {
   return `https://www.kevixo.com/blog/${slug}`;
 }
+
+const relatedArticleSlugsBySlug: Record<string, string[]> = {
+  "how-to-review-poker-hands": [
+    "poker-hand-analysis-framework",
+    "poker-hand-history-guide",
+    "ai-poker-coach",
+  ],
+  "poker-hand-history-guide": [
+    "poker-hand-analysis-framework",
+    "how-to-review-poker-hands",
+    "ai-poker-coach",
+  ],
+  "ai-poker-coach": [
+    "poker-hand-analysis-framework",
+    "how-to-review-poker-hands",
+    "gto-poker-strategy",
+  ],
+  "poker-mistakes-beginners": [
+    "poker-hand-analysis-framework",
+    "how-to-review-poker-hands",
+    "ai-poker-coach",
+  ],
+  "gto-poker-strategy": [
+    "poker-hand-analysis-framework",
+    "ai-poker-coach",
+    "how-to-review-poker-hands",
+  ],
+  "poker-hand-analysis-framework": [
+    "how-to-review-poker-hands",
+    "poker-hand-history-guide",
+    "ai-poker-coach",
+  ],
+};
+
+export const coreStudyArticleSlugs = [
+  "how-to-review-poker-hands",
+  "poker-hand-history-guide",
+  "ai-poker-coach",
+  "gto-poker-strategy",
+  "poker-hand-analysis-framework",
+] as const;
+
+export function getCoreStudyArticles() {
+  return coreStudyArticleSlugs
+    .map((slug) => getBlogArticle(slug))
+    .filter((article): article is BlogArticle => article !== null);
+}
+
+export function getRelatedBlogArticles(slug: string, limit = 3) {
+  const preferredSlugs = relatedArticleSlugsBySlug[slug] ?? [];
+  const preferredArticles = preferredSlugs
+    .map((relatedSlug) => getBlogArticle(relatedSlug))
+    .filter(
+      (article): article is BlogArticle => article !== null && article.slug !== slug,
+    );
+
+  const fallbackArticles = blogArticles.filter(
+    (article) =>
+      article.slug !== slug &&
+      !preferredArticles.some((relatedArticle) => relatedArticle.slug === article.slug),
+  );
+
+  return [...preferredArticles, ...fallbackArticles].slice(0, limit);
+}

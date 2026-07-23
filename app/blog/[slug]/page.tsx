@@ -4,7 +4,13 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
-import { blogArticles, getBlogArticle, getBlogArticleUrl } from "@/lib/blog";
+import {
+  blogArticles,
+  getBlogArticle,
+  getBlogArticleUrl,
+  getCoreStudyArticles,
+  getRelatedBlogArticles,
+} from "@/lib/blog";
 
 type BlogArticlePageProps = {
   params: Promise<{
@@ -69,6 +75,8 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
   }
 
   const url = getBlogArticleUrl(article.slug);
+  const relatedArticles = getRelatedBlogArticles(article.slug);
+  const coreStudyArticles = getCoreStudyArticles();
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -92,6 +100,30 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
     },
     mainEntityOfPage: url,
   };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://www.kevixo.com/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Blog",
+        item: "https://www.kevixo.com/blog",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: article.title,
+        item: url,
+      },
+    ],
+  };
 
   return (
     <main className="min-h-screen bg-background">
@@ -99,6 +131,10 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <article className="mx-auto w-full max-w-3xl px-5 pb-16 pt-8 md:pb-24 md:pt-10">
@@ -129,13 +165,8 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
             <p key={paragraph}>{paragraph}</p>
           ))}
 
-          {article.slug === "poker-hand-history-guide" ? <HandReviewGuideLink /> : null}
-          {article.slug === "ai-poker-coach" ? <AiCoachRelatedGuides /> : null}
-          {article.slug === "poker-mistakes-beginners" ? <BeginnerMistakesRelatedGuides /> : null}
-          {article.slug === "gto-poker-strategy" ? <GtoRelatedGuides /> : null}
-          {article.slug === "poker-hand-analysis-framework" ? (
-            <HandAnalysisFrameworkRelatedGuides />
-          ) : null}
+          <CoreStudyPath articles={coreStudyArticles} />
+          <RelatedArticles articles={relatedArticles} />
         </div>
 
         <Card className="mt-10 border-primary/20 bg-slate-950/58 p-5 md:p-6">
@@ -153,147 +184,69 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
   );
 }
 
-function HandReviewGuideLink() {
-  return (
-    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
-      <CardTitle>Next guide: review the decision</CardTitle>
-      <p className="mt-3 text-sm leading-6 text-slate-400">
-        Once you understand the hand history record, use Kevixo&apos;s hand review
-        framework to study the key decision, ranges, sizing, and next-time lesson.
-      </p>
-      <Link
-        href="/blog/how-to-review-poker-hands"
-        className="mt-5 inline-flex text-sm font-semibold text-primary hover:text-sky-200"
-      >
-        Read How to Review Poker Hands
-      </Link>
-    </Card>
-  );
-}
+type BlogArticleSummary = {
+  slug: string;
+  title: string;
+  description: string;
+  category: string;
+  readingTime: string;
+};
 
-function AiCoachRelatedGuides() {
+function CoreStudyPath({ articles }: { articles: BlogArticleSummary[] }) {
   return (
     <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
-      <CardTitle>Related study guides</CardTitle>
+      <CardTitle>Core study path</CardTitle>
       <p className="mt-3 text-sm leading-6 text-slate-400">
-        AI coaching works best when you understand the hand record and use a clear
-        decision review process.
-      </p>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <Link
-          href="/blog/poker-hand-history-guide"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          Read the hand history guide
-        </Link>
-        <Link
-          href="/blog/how-to-review-poker-hands"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          Read the hand review guide
-        </Link>
-      </div>
-    </Card>
-  );
-}
-
-function BeginnerMistakesRelatedGuides() {
-  return (
-    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
-      <CardTitle>Build the full study loop</CardTitle>
-      <p className="mt-3 text-sm leading-6 text-slate-400">
-        These guides help you turn beginner mistakes into structured hand review,
-        cleaner hand records, and better AI-assisted study sessions.
-      </p>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <Link
-          href="/blog/how-to-review-poker-hands"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          Hand review guide
-        </Link>
-        <Link
-          href="/blog/poker-hand-history-guide"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          Hand history guide
-        </Link>
-        <Link
-          href="/blog/ai-poker-coach"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          AI coach guide
-        </Link>
-      </div>
-    </Card>
-  );
-}
-
-function GtoRelatedGuides() {
-  return (
-    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
-      <CardTitle>Study GTO through real hands</CardTitle>
-      <p className="mt-3 text-sm leading-6 text-slate-400">
-        GTO concepts become easier to understand when you connect them to clean hand
-        records, structured review, and AI-assisted coaching notes.
-      </p>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <Link
-          href="/blog/how-to-review-poker-hands"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          Hand review guide
-        </Link>
-        <Link
-          href="/blog/poker-hand-history-guide"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          Hand history guide
-        </Link>
-        <Link
-          href="/blog/ai-poker-coach"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          AI coach guide
-        </Link>
-      </div>
-    </Card>
-  );
-}
-
-function HandAnalysisFrameworkRelatedGuides() {
-  return (
-    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
-      <CardTitle>Continue the hand analysis path</CardTitle>
-      <p className="mt-3 text-sm leading-6 text-slate-400">
-        Use these guides to deepen your poker hand analysis with better records,
-        structured review, AI coaching, and strategy concepts.
+        Build a stronger review routine with Kevixo&apos;s guides to hand review,
+        hand history analysis, AI coaching, GTO concepts, and poker hand analysis.
       </p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <Link
-          href="/blog/how-to-review-poker-hands"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          Poker hand review guide
-        </Link>
-        <Link
-          href="/blog/poker-hand-history-guide"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          Hand history analysis guide
-        </Link>
-        <Link
-          href="/blog/ai-poker-coach"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          AI poker coaching guide
-        </Link>
-        <Link
-          href="/blog/gto-poker-strategy"
-          className="text-sm font-semibold text-primary hover:text-sky-200"
-        >
-          GTO strategy guide
-        </Link>
+        {articles.map((studyArticle) => (
+          <Link
+            key={studyArticle.slug}
+            href={`/blog/${studyArticle.slug}`}
+            className="rounded-xl border border-slate-800 bg-slate-900/38 p-4 transition duration-200 hover:border-primary/35 hover:bg-primary/5"
+          >
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+              {studyArticle.category}
+            </span>
+            <span className="mt-2 block text-sm font-semibold leading-6 text-slate-100">
+              {studyArticle.title}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function RelatedArticles({ articles }: { articles: BlogArticleSummary[] }) {
+  return (
+    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
+      <CardTitle>Related Articles</CardTitle>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        Keep studying with guides that connect this topic to hand review, decision
+        analysis, and better poker study habits.
+      </p>
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        {articles.map((relatedArticle) => (
+          <Link key={relatedArticle.slug} href={`/blog/${relatedArticle.slug}`} className="group">
+            <div className="h-full rounded-xl border border-slate-800 bg-slate-900/38 p-4 transition duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/35 group-hover:bg-primary/5">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary">
+                  {relatedArticle.category}
+                </span>
+                <span className="text-slate-500">{relatedArticle.readingTime}</span>
+              </div>
+              <h2 className="mt-4 text-base font-semibold leading-6 text-slate-100">
+                {relatedArticle.title}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                {relatedArticle.description}
+              </p>
+            </div>
+          </Link>
+        ))}
       </div>
     </Card>
   );
