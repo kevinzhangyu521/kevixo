@@ -90,10 +90,7 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
         url: "https://www.kevixo.com/brand/kevixo-icon-512.png",
       },
     },
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": url,
-    },
+    mainEntityOfPage: url,
   };
 
   return (
