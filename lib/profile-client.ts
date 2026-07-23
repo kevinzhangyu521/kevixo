@@ -2,6 +2,10 @@
 
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
+const avatarBucket = "avatars";
+const maxAvatarSize = 5 * 1024 * 1024;
+const allowedAvatarTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 export type UserProfile = {
   id: string;
   email: string;
@@ -139,6 +143,48 @@ export async function updateUserProfile({
   return fromRow(data);
 }
 
+export async function uploadUserAvatar(file: File) {
+  if (!allowedAvatarTypes.has(file.type)) {
+    throw new Error("Please upload a JPG, PNG, or WebP image.");
+  }
+
+  if (file.size > maxAvatarSize) {
+    throw new Error("Please choose an image smaller than 5MB.");
+  }
+
+  const profile = await getCurrentUserProfile();
+
+  if (!profile) {
+    throw new Error("Please sign in first.");
+  }
+
+  const supabase = getSupabaseClient();
+  const extension = getAvatarExtension(file);
+  const filePath = `${profile.id}/avatar-${Date.now()}.${extension}`;
+  const { error: uploadError } = await supabase.storage
+    .from(avatarBucket)
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  const { data } = supabase.storage.from(avatarBucket).getPublicUrl(filePath);
+
+  if (!data.publicUrl) {
+    throw new Error("Profile photo uploaded, but the public URL could not be created.");
+  }
+
+  return updateUserProfile({
+    avatarUrl: data.publicUrl,
+    displayName: profile.displayName,
+  });
+}
+
 function fromRow(row: ProfileRow): UserProfile {
   return {
     id: row.id,
@@ -158,4 +204,16 @@ function isMissingUserIdColumnError(error: { code?: string; message?: string }) 
     error.code === "42703" ||
     message.includes("user_id") && message.includes("column")
   );
+}
+
+function getAvatarExtension(file: File) {
+  if (file.type === "image/png") {
+    return "png";
+  }
+
+  if (file.type === "image/webp") {
+    return "webp";
+  }
+
+  return "jpg";
 }

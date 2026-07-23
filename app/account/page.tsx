@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
@@ -10,6 +11,7 @@ import { getAuthHeaders } from "@/lib/auth-client";
 import {
   getCurrentUserProfile,
   updateUserProfile,
+  uploadUserAvatar,
   type UserProfile,
 } from "@/lib/profile-client";
 import {
@@ -21,13 +23,14 @@ import type { Subscription } from "@/lib/subscription";
 
 export default function AccountPage() {
   const router = useRouter();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [displayName, setDisplayName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isCoach, setIsCoach] = useState(false);
   const [status, setStatus] = useState("Loading your account...");
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const loadAccount = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -45,7 +48,6 @@ export default function AccountPage() {
 
       setProfile(nextProfile);
       setDisplayName(nextProfile.displayName ?? "");
-      setAvatarUrl(nextProfile.avatarUrl ?? "");
 
       const response = await fetch("/api/billing/subscription", {
         headers: await getAuthHeaders(),
@@ -82,13 +84,40 @@ export default function AccountPage() {
     setStatus("Saving profile...");
 
     try {
-      const nextProfile = await updateUserProfile({ avatarUrl, displayName });
+      const nextProfile = await updateUserProfile({
+        avatarUrl: profile?.avatarUrl,
+        displayName,
+      });
       setProfile(nextProfile);
-      setStatus("Profile saved.");
+      setDisplayName(nextProfile.displayName ?? "");
+      setStatus("Profile updated.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Profile could not be saved.");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setStatus("Uploading...");
+
+    try {
+      const nextProfile = await uploadUserAvatar(file);
+      setProfile(nextProfile);
+      setDisplayName(nextProfile.displayName ?? "");
+      setStatus("Profile photo updated.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Profile photo could not be uploaded.");
+    } finally {
+      setIsUploadingAvatar(false);
+      event.target.value = "";
     }
   }
 
@@ -130,9 +159,37 @@ export default function AccountPage() {
         <div className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
           <Card className="p-5 md:p-6">
             <CardTitle>Profile Information</CardTitle>
-            <div className="mt-5 grid gap-3">
+            <div className="mt-6 grid gap-5">
+              <div className="rounded-xl border border-slate-800 bg-slate-950/48 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Profile Photo
+                </p>
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <AvatarPreview profile={profile} />
+                  <div className="grid gap-2">
+                    <input
+                      ref={avatarInputRef}
+                      onChange={handleAvatarChange}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={!profile || isUploadingAvatar}
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="w-fit"
+                    >
+                      {isUploadingAvatar ? "Uploading..." : "Upload Avatar"}
+                    </Button>
+                    <p className="text-xs leading-5 text-slate-500">
+                      JPG, PNG, or WebP. Maximum file size 5MB.
+                    </p>
+                  </div>
+                </div>
+              </div>
               <InfoRow label="Email" value={profile?.email ?? "Loading..."} />
-              <InfoRow label="Account ID" value={profile?.id ?? "Loading..."} />
             </div>
 
             <form onSubmit={handleSaveProfile} className="mt-6 grid gap-4">
@@ -145,16 +202,7 @@ export default function AccountPage() {
                   placeholder="Optional"
                 />
               </label>
-              <label className="grid gap-2 text-sm font-medium text-slate-300">
-                Avatar URL
-                <input
-                  value={avatarUrl}
-                  onChange={(event) => setAvatarUrl(event.target.value)}
-                  className="min-h-11 rounded-xl border border-slate-800 bg-slate-950/70 px-4 text-slate-100 outline-none transition focus:border-primary/50"
-                  placeholder="Optional"
-                />
-              </label>
-              <Button type="submit" disabled={isSaving || !profile}>
+              <Button type="submit" disabled={isSaving || isUploadingAvatar || !profile}>
                 {isSaving ? "Saving..." : "Save Profile"}
               </Button>
             </form>
@@ -180,7 +228,7 @@ export default function AccountPage() {
               <CardTitle>Subscription</CardTitle>
               <div className="mt-5 grid gap-3">
                 <InfoRow label="Current Plan" value={isCoach ? "Kevixo Coach" : "Free"} />
-                <InfoRow label="Status" value={subscription?.status ?? "Free"} />
+                <InfoRow label="Account Status" value={formatSubscriptionStatus(subscription)} />
                 <InfoRow
                   label="Renewal Date"
                   value={
@@ -207,6 +255,32 @@ export default function AccountPage() {
   );
 }
 
+function AvatarPreview({ profile }: { profile: UserProfile | null }) {
+  const label = profile?.displayName || profile?.email || "Kevixo user";
+
+  if (profile?.avatarUrl) {
+    return (
+      <Image
+        src={profile.avatarUrl}
+        alt={`${label} profile photo`}
+        width={96}
+        height={96}
+        unoptimized
+        className="h-24 w-24 rounded-2xl border border-slate-700 object-cover"
+      />
+    );
+  }
+
+  return (
+    <div
+      aria-label="Default profile photo"
+      className="flex h-24 w-24 items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 text-2xl font-semibold text-primary"
+    >
+      {getAvatarInitial(label)}
+    </div>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-950/48 p-4">
@@ -220,4 +294,19 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
   }).format(new Date(value));
+}
+
+function formatSubscriptionStatus(subscription: Subscription | null) {
+  if (!subscription || subscription.status === "free") {
+    return "Active";
+  }
+
+  return subscription.status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getAvatarInitial(value: string) {
+  return value.trim().charAt(0).toUpperCase() || "K";
 }
