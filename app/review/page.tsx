@@ -43,7 +43,6 @@ const loadingSteps = [
 ];
 
 const minimumLoadingMs = 3200;
-const adminReviewAccessKey = process.env.NEXT_PUBLIC_ADMIN_FEEDBACK_KEY;
 
 type AnalyzeResponse =
   | { ok: true; report: CoachingReport }
@@ -76,13 +75,8 @@ export default function ReviewPage() {
 
   const loadStoredReviewFromServer = useCallback(async (reviewId: string) => {
     try {
-      const hasAdminAccess =
-        window.sessionStorage.getItem("kevixo.feedbackAdminAuthorized") === "true";
       const response = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}`, {
-        headers:
-          hasAdminAccess && adminReviewAccessKey
-            ? { "x-admin-passcode": adminReviewAccessKey }
-            : undefined,
+        headers: await getAuthHeaders(),
       });
       const payload = (await response.json()) as {
         ok: boolean;

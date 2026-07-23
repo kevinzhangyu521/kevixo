@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
+import { authorizeAdminUser } from "@/lib/admin-users";
 import { findHandReviewByReviewId } from "@/lib/supabase-hand-reviews";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ reviewId: string }> },
 ) {
-  const authError = authorizeAdminRequest(request);
+  const authError = await authorizeAdminUser(request);
 
-  if (authError) {
-    return authError;
+  if (!authError.ok) {
+    return NextResponse.json(
+      { ok: false, error: authError.error },
+      { status: authError.status },
+    );
   }
 
   const { reviewId } = await params;
@@ -34,15 +38,4 @@ export async function GET(
       { status: 500 },
     );
   }
-}
-
-function authorizeAdminRequest(request: Request) {
-  const adminKey = process.env.NEXT_PUBLIC_ADMIN_FEEDBACK_KEY;
-  const passcode = request.headers.get("x-admin-passcode");
-
-  if (!adminKey || passcode !== adminKey) {
-    return NextResponse.json({ ok: false, error: "Admin access required." }, { status: 401 });
-  }
-
-  return null;
 }

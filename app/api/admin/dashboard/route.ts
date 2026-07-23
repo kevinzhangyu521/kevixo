@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { getFounderDashboardData } from "@/lib/admin-dashboard";
+import { authorizeAdminUser } from "@/lib/admin-users";
 
 export async function GET(request: Request) {
-  const authError = authorizeAdminRequest(request);
+  const authError = await authorizeAdminUser(request);
 
-  if (authError) {
-    return authError;
+  if (!authError.ok) {
+    return NextResponse.json(
+      { ok: false, error: authError.error },
+      { status: authError.status },
+    );
   }
 
   try {
@@ -21,15 +25,4 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
-}
-
-function authorizeAdminRequest(request: Request) {
-  const adminKey = process.env.NEXT_PUBLIC_ADMIN_FEEDBACK_KEY;
-  const passcode = request.headers.get("x-admin-passcode");
-
-  if (!adminKey || passcode !== adminKey) {
-    return NextResponse.json({ ok: false, error: "Admin access required." }, { status: 401 });
-  }
-
-  return null;
 }

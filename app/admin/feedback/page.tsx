@@ -1,35 +1,31 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminNav } from "@/components/admin-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { SiteHeader } from "@/components/site-header";
+import { getAuthHeaders } from "@/lib/auth-client";
 import type { ReviewFeedbackEntry } from "@/lib/review-feedback";
 
 const pageSize = 6;
-const adminKey = process.env.NEXT_PUBLIC_ADMIN_FEEDBACK_KEY;
 
 export default function FeedbackAdminPage() {
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [passcode, setPasscode] = useState("");
   const [feedback, setFeedback] = useState<ReviewFeedbackEntry[]>([]);
   const [totalFeedback, setTotalFeedback] = useState(0);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | ReviewFeedbackEntry["status"]>("all");
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [adminError, setAdminError] = useState("");
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const loadFeedback = useCallback(
     async (signal?: AbortSignal) => {
-      if (!isAuthorized || !adminKey) {
-        return;
-      }
-
       setIsLoading(true);
       setAdminError("");
+      setAccessDenied(false);
 
       try {
         const params = new URLSearchParams({
@@ -39,9 +35,7 @@ export default function FeedbackAdminPage() {
           status: statusFilter,
         });
         const response = await fetch(`/api/admin/feedback?${params.toString()}`, {
-          headers: {
-            "x-admin-passcode": adminKey,
-          },
+          headers: await getAuthHeaders(),
           signal,
         });
         const payload = (await response.json()) as {
@@ -50,6 +44,14 @@ export default function FeedbackAdminPage() {
           total?: number;
           error?: string;
         };
+
+        if (response.status === 401 || response.status === 403) {
+          setAccessDenied(true);
+          setFeedback([]);
+          setTotalFeedback(0);
+          setAdminError(payload.error ?? "Access denied.");
+          return;
+        }
 
         if (!response.ok || !payload.ok) {
           throw new Error(payload.error ?? "Feedback could not be loaded.");
@@ -69,18 +71,8 @@ export default function FeedbackAdminPage() {
         setIsLoading(false);
       }
     },
-    [isAuthorized, page, query, statusFilter],
+    [page, query, statusFilter],
   );
-
-  useEffect(() => {
-    const frameId = window.requestAnimationFrame(() => {
-      if (window.sessionStorage.getItem("kevixo.feedbackAdminAuthorized") === "true") {
-        setIsAuthorized(true);
-      }
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -97,31 +89,7 @@ export default function FeedbackAdminPage() {
   const pageCount = Math.max(1, Math.ceil(totalFeedback / pageSize));
   const currentPage = Math.min(page, pageCount);
 
-  function handleAuthorize(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!adminKey || passcode !== adminKey) {
-      return;
-    }
-
-    window.sessionStorage.setItem("kevixo.feedbackAdminAuthorized", "true");
-    setIsAuthorized(true);
-  }
-
-  function handleLogout() {
-    window.sessionStorage.removeItem("kevixo.feedbackAdminAuthorized");
-    setIsAuthorized(false);
-    setPasscode("");
-    setFeedback([]);
-    setTotalFeedback(0);
-    setAdminError("");
-  }
-
   async function markResolved(id: string) {
-    if (!adminKey) {
-      return;
-    }
-
     setAdminError("");
 
     try {
@@ -129,11 +97,17 @@ export default function FeedbackAdminPage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-passcode": adminKey,
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({ id, status: "resolved" }),
       });
       const payload = (await response.json()) as { ok: boolean; error?: string };
+
+      if (response.status === 401 || response.status === 403) {
+        setAccessDenied(true);
+        setAdminError(payload.error ?? "Access denied.");
+        return;
+      }
 
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error ?? "Feedback could not be resolved.");
@@ -148,10 +122,6 @@ export default function FeedbackAdminPage() {
   }
 
   async function saveAdminNote(id: string, adminNote: string) {
-    if (!adminKey) {
-      return;
-    }
-
     setAdminError("");
 
     try {
@@ -159,11 +129,17 @@ export default function FeedbackAdminPage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-passcode": adminKey,
+          ...(await getAuthHeaders()),
         },
         body: JSON.stringify({ id, adminNote }),
       });
       const payload = (await response.json()) as { ok: boolean; error?: string };
+
+      if (response.status === 401 || response.status === 403) {
+        setAccessDenied(true);
+        setAdminError(payload.error ?? "Access denied.");
+        return;
+      }
 
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error ?? "Admin note could not be saved.");
@@ -176,20 +152,20 @@ export default function FeedbackAdminPage() {
   }
 
   async function deleteSpam(id: string) {
-    if (!adminKey) {
-      return;
-    }
-
     setAdminError("");
 
     try {
       const response = await fetch(`/api/admin/feedback?id=${encodeURIComponent(id)}`, {
         method: "DELETE",
-        headers: {
-          "x-admin-passcode": adminKey,
-        },
+        headers: await getAuthHeaders(),
       });
       const payload = (await response.json()) as { ok: boolean; error?: string };
+
+      if (response.status === 401 || response.status === 403) {
+        setAccessDenied(true);
+        setAdminError(payload.error ?? "Access denied.");
+        return;
+      }
 
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error ?? "Feedback could not be deleted.");
@@ -220,11 +196,6 @@ export default function FeedbackAdminPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {isAuthorized ? (
-              <Button variant="secondary" onClick={handleLogout}>
-                Logout
-              </Button>
-            ) : null}
             <span className="rounded-full border border-slate-800 bg-slate-950/48 px-3 py-1 text-xs font-semibold text-slate-400">
               Feedback Database
             </span>
@@ -233,13 +204,8 @@ export default function FeedbackAdminPage() {
 
         <AdminNav active="feedback" />
 
-        {!isAuthorized ? (
-          <AdminGate
-            passcode={passcode}
-            hasKey={Boolean(adminKey)}
-            onPasscodeChange={setPasscode}
-            onSubmit={handleAuthorize}
-          />
+        {accessDenied ? (
+          <AccessDeniedCard />
         ) : (
           <Card className="mt-8 p-5 md:p-6">
             <div className="grid gap-4 md:grid-cols-[1fr_220px]">
@@ -323,39 +289,13 @@ export default function FeedbackAdminPage() {
   );
 }
 
-function AdminGate({
-  hasKey,
-  passcode,
-  onPasscodeChange,
-  onSubmit,
-}: {
-  hasKey: boolean;
-  passcode: string;
-  onPasscodeChange: (value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}) {
+function AccessDeniedCard() {
   return (
     <Card className="mt-8 max-w-xl p-5 md:p-6">
-      <CardTitle>Admin Access</CardTitle>
+      <CardTitle>Access Denied</CardTitle>
       <p className="mt-3 text-sm leading-6 text-slate-400">
-        Enter the founder passcode to review player feedback.
+        This page is available only to active Kevixo admin accounts.
       </p>
-      {!hasKey ? (
-        <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-950/20 p-4 text-sm leading-6 text-amber-100">
-          Admin access is not configured yet, so feedback cannot be viewed in production.
-        </p>
-      ) : (
-        <form onSubmit={onSubmit} className="mt-5 grid gap-4">
-          <input
-            value={passcode}
-            onChange={(event) => onPasscodeChange(event.target.value)}
-            type="password"
-            placeholder="Admin passcode"
-            className="min-h-11 rounded-xl border border-slate-800 bg-slate-950/70 px-4 text-slate-100 placeholder:text-slate-600"
-          />
-          <Button type="submit">Open Feedback</Button>
-        </form>
-      )}
     </Card>
   );
 }

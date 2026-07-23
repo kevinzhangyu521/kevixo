@@ -4,6 +4,7 @@ import {
   listReviewFeedback,
   updateReviewFeedback,
 } from "@/lib/supabase-feedback";
+import { authorizeAdminUser } from "@/lib/admin-users";
 import type { ReviewFeedbackStatus } from "@/lib/review-feedback";
 
 const defaultPage = 1;
@@ -11,10 +12,13 @@ const defaultPageSize = 6;
 const maxPageSize = 50;
 
 export async function GET(request: Request) {
-  const unauthorized = authorize(request);
+  const unauthorized = await authorizeAdminUser(request);
 
-  if (unauthorized) {
-    return unauthorized;
+  if (!unauthorized.ok) {
+    return NextResponse.json(
+      { ok: false, error: unauthorized.error },
+      { status: unauthorized.status },
+    );
   }
 
   try {
@@ -35,10 +39,13 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const unauthorized = authorize(request);
+  const unauthorized = await authorizeAdminUser(request);
 
-  if (unauthorized) {
-    return unauthorized;
+  if (!unauthorized.ok) {
+    return NextResponse.json(
+      { ok: false, error: unauthorized.error },
+      { status: unauthorized.status },
+    );
   }
 
   try {
@@ -72,10 +79,13 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const unauthorized = authorize(request);
+  const unauthorized = await authorizeAdminUser(request);
 
-  if (unauthorized) {
-    return unauthorized;
+  if (!unauthorized.ok) {
+    return NextResponse.json(
+      { ok: false, error: unauthorized.error },
+      { status: unauthorized.status },
+    );
   }
 
   try {
@@ -92,17 +102,6 @@ export async function DELETE(request: Request) {
   } catch (error) {
     return serverError(error);
   }
-}
-
-function authorize(request: Request) {
-  const adminKey = process.env.NEXT_PUBLIC_ADMIN_FEEDBACK_KEY;
-  const passcode = request.headers.get("x-admin-passcode");
-
-  if (!adminKey || passcode !== adminKey) {
-    return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 401 });
-  }
-
-  return null;
 }
 
 function getPositiveInteger(value: string | null, fallback: number) {

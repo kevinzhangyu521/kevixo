@@ -1,70 +1,56 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminNav } from "@/components/admin-nav";
 import { SiteHeader } from "@/components/site-header";
-import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { getAuthHeaders } from "@/lib/auth-client";
 import type { FounderDashboardData } from "@/lib/admin-dashboard";
 
-const adminKey = process.env.NEXT_PUBLIC_ADMIN_FEEDBACK_KEY;
-
 export default function FounderDashboardPage() {
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [passcode, setPasscode] = useState("");
   const [dashboard, setDashboard] = useState<FounderDashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [adminError, setAdminError] = useState("");
+  const [accessDenied, setAccessDenied] = useState(false);
 
-  const loadDashboard = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!isAuthorized || !adminKey) {
+  const loadDashboard = useCallback(async (signal?: AbortSignal) => {
+    setIsLoading(true);
+    setAdminError("");
+    setAccessDenied(false);
+
+    try {
+      const response = await fetch("/api/admin/dashboard", {
+        headers: await getAuthHeaders(),
+        signal,
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        dashboard?: FounderDashboardData;
+        error?: string;
+      };
+
+      if (response.status === 401 || response.status === 403) {
+        setAccessDenied(true);
+        setDashboard(null);
+        setAdminError(payload.error ?? "Access denied.");
         return;
       }
 
-      setIsLoading(true);
-      setAdminError("");
-
-      try {
-        const response = await fetch("/api/admin/dashboard", {
-          headers: {
-            "x-admin-passcode": adminKey,
-          },
-          signal,
-        });
-        const payload = (await response.json()) as {
-          ok: boolean;
-          dashboard?: FounderDashboardData;
-          error?: string;
-        };
-
-        if (!response.ok || !payload.ok || !payload.dashboard) {
-          throw new Error(payload.error ?? "Dashboard could not be loaded.");
-        }
-
-        setDashboard(payload.dashboard);
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-
-        setAdminError(error instanceof Error ? error.message : "Dashboard could not be loaded.");
-      } finally {
-        setIsLoading(false);
+      if (!response.ok || !payload.ok || !payload.dashboard) {
+        throw new Error(payload.error ?? "Dashboard could not be loaded.");
       }
-    },
-    [isAuthorized],
-  );
 
-  useEffect(() => {
-    const frameId = window.requestAnimationFrame(() => {
-      if (window.sessionStorage.getItem("kevixo.feedbackAdminAuthorized") === "true") {
-        setIsAuthorized(true);
+      setDashboard(payload.dashboard);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
       }
-    });
 
-    return () => window.cancelAnimationFrame(frameId);
+      setAdminError(error instanceof Error ? error.message : "Dashboard could not be loaded.");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -78,25 +64,6 @@ export default function FounderDashboardPage() {
       controller.abort();
     };
   }, [loadDashboard]);
-
-  function handleAuthorize(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!adminKey || passcode !== adminKey) {
-      return;
-    }
-
-    window.sessionStorage.setItem("kevixo.feedbackAdminAuthorized", "true");
-    setIsAuthorized(true);
-  }
-
-  function handleLogout() {
-    window.sessionStorage.removeItem("kevixo.feedbackAdminAuthorized");
-    setIsAuthorized(false);
-    setPasscode("");
-    setDashboard(null);
-    setAdminError("");
-  }
 
   return (
     <main className="min-h-screen bg-background">
@@ -116,11 +83,6 @@ export default function FounderDashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {isAuthorized ? (
-              <Button variant="secondary" onClick={handleLogout}>
-                Logout
-              </Button>
-            ) : null}
             <span className="rounded-full border border-slate-800 bg-slate-950/48 px-3 py-1 text-xs font-semibold text-slate-400">
               Operations Dashboard
             </span>
@@ -129,13 +91,8 @@ export default function FounderDashboardPage() {
 
         <AdminNav active="dashboard" />
 
-        {!isAuthorized ? (
-          <AdminGate
-            passcode={passcode}
-            hasKey={Boolean(adminKey)}
-            onPasscodeChange={setPasscode}
-            onSubmit={handleAuthorize}
-          />
+        {accessDenied ? (
+          <AccessDeniedCard />
         ) : (
           <div className="mt-8 grid gap-5">
             {adminError ? (
@@ -390,39 +347,13 @@ function BarRow({
   );
 }
 
-function AdminGate({
-  hasKey,
-  passcode,
-  onPasscodeChange,
-  onSubmit,
-}: {
-  hasKey: boolean;
-  passcode: string;
-  onPasscodeChange: (value: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}) {
+function AccessDeniedCard() {
   return (
     <Card className="mt-8 max-w-xl p-5 md:p-6">
-      <CardTitle>Admin Access</CardTitle>
+      <CardTitle>Access Denied</CardTitle>
       <p className="mt-3 text-sm leading-6 text-slate-400">
-        Enter the founder passcode to open the operations dashboard.
+        This page is available only to active Kevixo admin accounts.
       </p>
-      {!hasKey ? (
-        <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-950/20 p-4 text-sm leading-6 text-amber-100">
-          Admin access is not configured yet, so the dashboard cannot be viewed in production.
-        </p>
-      ) : (
-        <form onSubmit={onSubmit} className="mt-5 grid gap-4">
-          <input
-            value={passcode}
-            onChange={(event) => onPasscodeChange(event.target.value)}
-            type="password"
-            placeholder="Admin passcode"
-            className="min-h-11 rounded-xl border border-slate-800 bg-slate-950/70 px-4 text-slate-100 placeholder:text-slate-600"
-          />
-          <Button type="submit">Open Dashboard</Button>
-        </form>
-      )}
     </Card>
   );
 }
