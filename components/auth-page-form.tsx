@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const authCopy = {
     status: "Use one account for reviews, progress, and billing.",
     submit: "Sign In",
     submitting: "Signing you in...",
+    loadingSubmit: "Signing in...",
   },
   "sign-up": {
     eyebrow: "Create Account",
@@ -30,6 +31,7 @@ const authCopy = {
     status: "Create one account for reviews, progress, and billing.",
     submit: "Create Account",
     submitting: "Creating your account...",
+    loadingSubmit: "Creating account...",
   },
   reset: {
     eyebrow: "Password Reset",
@@ -38,6 +40,7 @@ const authCopy = {
     status: "Enter your email and we will send you a password reset link.",
     submit: "Send reset link",
     submitting: "Sending password reset email...",
+    loadingSubmit: "Sending reset link...",
   },
 } satisfies Record<AuthMode, Record<string, string>>;
 
@@ -48,7 +51,27 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(copy.status);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isPasswordRequired = mode !== "reset";
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const isPasswordRequired = mode !== "reset" || isPasswordRecovery;
+
+  useEffect(() => {
+    if (mode !== "reset") {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const hasRecoveryHash =
+        window.location.hash.includes("type=recovery") ||
+        window.location.search.includes("type=recovery");
+
+      if (hasRecoveryHash) {
+        setIsPasswordRecovery(true);
+        setStatus("Enter a new password for your Kevixo account.");
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [mode]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,10 +82,25 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
     }
 
     setIsSubmitting(true);
-    setStatus(copy.submitting);
+    setStatus(getSubmittingStatus(mode, isPasswordRecovery));
 
     try {
       const supabase = getSupabaseClient();
+
+      if (mode === "reset" && isPasswordRecovery) {
+        const { error } = await supabase.auth.updateUser({ password });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        setStatus("Password updated. You can now continue using Kevixo.");
+        window.setTimeout(() => {
+          router.push("/login");
+          router.refresh();
+        }, 800);
+        return;
+      }
 
       if (mode === "reset") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -77,22 +115,52 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         return;
       }
 
+      if (mode === "sign-up") {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+        });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        if (data.session) {
+          setStatus("Account created. You are signed in and ready to continue.");
+
+          try {
+            await ensureUserProfile();
+          } catch (profileError) {
+            console.warn("Kevixo profile setup will retry later.", profileError);
+          }
+
+          window.setTimeout(() => {
+            router.push(getRedirectPath());
+            router.refresh();
+          }, 800);
+          return;
+        }
+
+        setStatus("Account created. Check your email to confirm your account.");
+        return;
+      }
+
       const auth =
-        mode === "sign-in"
-          ? await supabase.auth.signInWithPassword({ email, password })
-          : await supabase.auth.signUp({ email, password });
+        await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
       if (auth.error) {
         throw new Error(auth.error.message);
       }
 
-      if (auth.data.session) {
-        await ensureUserProfile();
+      if (!auth.data.session) {
+        setStatus("Sign in completed, but no active session was returned. Please try again.");
+        return;
       }
 
-      if (!auth.data.session && mode === "sign-up") {
-        setStatus("Account created. Check your email if confirmation is enabled, then sign in.");
-        return;
+      try {
+        await ensureUserProfile();
+      } catch (profileError) {
+        console.warn("Kevixo profile setup will retry later.", profileError);
       }
 
       router.push(getRedirectPath());
@@ -130,7 +198,7 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
           </label>
           {isPasswordRequired ? (
             <label className="grid gap-2 text-sm font-medium text-slate-300">
-              Password
+              {isPasswordRecovery ? "New password" : "Password"}
               <input
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -142,13 +210,15 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
             </label>
           ) : null}
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Please wait..." : copy.submit}
+            {isSubmitting ? copy.loadingSubmit : getSubmitLabel(mode, isPasswordRecovery)}
           </Button>
         </form>
 
-        <AuthPageLinks mode={mode} />
+        <AuthPageLinks mode={mode} isPasswordRecovery={isPasswordRecovery} />
 
-        <p className="mt-5 text-sm leading-6 text-slate-400">{status}</p>
+        <p className="mt-5 text-sm leading-6 text-slate-400" role="status" aria-live="polite">
+          {status}
+        </p>
         <p className="mt-4 text-xs leading-5 text-slate-500">
           By continuing, you agree to Kevixo&apos;s{" "}
           <Link href="/terms" className="text-slate-300 hover:text-primary">
@@ -165,7 +235,13 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
   );
 }
 
-function AuthPageLinks({ mode }: { mode: AuthMode }) {
+function AuthPageLinks({
+  isPasswordRecovery,
+  mode,
+}: {
+  isPasswordRecovery: boolean;
+  mode: AuthMode;
+}) {
   if (mode === "sign-in") {
     return (
       <div className="mt-5 flex flex-col gap-2 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
@@ -192,12 +268,28 @@ function AuthPageLinks({ mode }: { mode: AuthMode }) {
 
   return (
     <p className="mt-5 text-sm text-slate-400">
-      Remembered your password?{" "}
+      {isPasswordRecovery ? "Want to sign in instead?" : "Remembered your password?"}{" "}
       <Link href="/login" className="font-semibold text-primary hover:text-sky-200">
         Back to login
       </Link>
     </p>
   );
+}
+
+function getSubmitLabel(mode: AuthMode, isPasswordRecovery: boolean) {
+  if (mode === "reset" && isPasswordRecovery) {
+    return "Update password";
+  }
+
+  return authCopy[mode].submit;
+}
+
+function getSubmittingStatus(mode: AuthMode, isPasswordRecovery: boolean) {
+  if (mode === "reset" && isPasswordRecovery) {
+    return "Updating your password...";
+  }
+
+  return authCopy[mode].submitting;
 }
 
 function getRedirectPath() {
