@@ -85,6 +85,7 @@ export default function ReviewPage() {
   const [isSaveEmailSaving, setIsSaveEmailSaving] = useState(false);
   const [isSaveEmailSent, setIsSaveEmailSent] = useState(false);
   const [isAccountConnected, setIsAccountConnected] = useState(false);
+  const [isGuestSignupNoticeDismissed, setIsGuestSignupNoticeDismissed] = useState(false);
 
   const loadStoredReviewFromServer = useCallback(async (reviewId: string) => {
     try {
@@ -105,6 +106,7 @@ export default function ReviewPage() {
       setSelectedDemoId("");
       setReport(payload.review.report);
       setReviewLookupMessage("");
+      setIsGuestSignupNoticeDismissed(false);
       saveStoredReview(window.localStorage, {
         reviewId: payload.review.reviewId,
         createdAt: payload.review.createdAt,
@@ -130,6 +132,7 @@ export default function ReviewPage() {
           setSelectedDemoId("");
           setReport(storedReview.report);
           setReviewLookupMessage("");
+          setIsGuestSignupNoticeDismissed(false);
         } else {
           setReviewLookupMessage("Loading review...");
           void loadStoredReviewFromServer(reviewId);
@@ -203,6 +206,7 @@ export default function ReviewPage() {
     setSaveEmailStatus("Email is optional.");
     setIsSaveEmailSaving(false);
     setIsSaveEmailSent(false);
+    setIsGuestSignupNoticeDismissed(false);
     setReviewLookupMessage("");
     trackAnalyze();
     void saveGrowthEvent("review_started");
@@ -470,6 +474,14 @@ export default function ReviewPage() {
         {report ? <ReviewShareCard report={report} /> : null}
         {report ? <ReportCards report={report} /> : null}
         {report ? (
+          <ReviewConversionFlow
+            isAccountConnected={isAccountConnected}
+            isGuestNoticeDismissed={isGuestSignupNoticeDismissed}
+            reviewId={report.reviewId}
+            onDismissGuestNotice={() => setIsGuestSignupNoticeDismissed(true)}
+          />
+        ) : null}
+        {report ? (
           <SaveReviewsCard
             email={saveEmail}
             isSaving={isSaveEmailSaving}
@@ -532,6 +544,103 @@ export default function ReviewPage() {
     </main>
   );
 }
+
+function ReviewConversionFlow({
+  isAccountConnected,
+  isGuestNoticeDismissed,
+  onDismissGuestNotice,
+  reviewId,
+}: {
+  isAccountConnected: boolean;
+  isGuestNoticeDismissed: boolean;
+  onDismissGuestNotice: () => void;
+  reviewId: string;
+}) {
+  const signupHref = `/signup?redirect=${encodeURIComponent(
+    `/review?reviewId=${encodeURIComponent(reviewId)}`,
+  )}`;
+
+  return (
+    <section className="fade-in mt-6 grid gap-5" aria-label="Save review and Coach preview">
+      {isAccountConnected ? (
+        <Card className="border-emerald-400/20 bg-emerald-400/5 p-5 md:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle>Your review is saved to your Kevixo account.</CardTitle>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                You can revisit this hand from your review history whenever you want to study it
+                again.
+              </p>
+            </div>
+            <Button asChild variant="secondary">
+              <Link href="/my-reviews">View My Reviews</Link>
+            </Button>
+          </div>
+        </Card>
+      ) : !isGuestNoticeDismissed ? (
+        <Card className="border-primary/30 bg-primary/5 p-5 md:p-6">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div>
+              <CardTitle>Save this review permanently</CardTitle>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                You&apos;re currently using Guest Mode. This review is only stored in this browser.
+                Create a free account to keep your coaching history across devices.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row md:flex-col">
+              <Button asChild>
+                <Link href={signupHref}>Create Free Account</Link>
+              </Button>
+              <button
+                type="button"
+                onClick={onDismissGuestNotice}
+                className="rounded-xl border border-slate-800 px-4 py-2 text-sm font-semibold text-slate-400 transition duration-200 hover:border-slate-600 hover:text-slate-100 active:scale-[0.98]"
+              >
+                Continue as Guest
+              </button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
+      <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <CardTitle>Coach Preview</CardTitle>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+              Kevixo Coach is being built for players who want long-term study structure after each
+              hand review.
+            </p>
+          </div>
+          <Button asChild variant="secondary">
+            <Link href="/pricing">Explore Coach</Link>
+          </Button>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          {coachPreviewItems.map((item) => (
+            <div
+              key={item}
+              className="rounded-xl border border-slate-800 bg-slate-950/48 p-4"
+            >
+              <p className="text-sm font-semibold leading-6 text-slate-100">{item}</p>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                🔒 Available with Coach
+              </p>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+const coachPreviewItems = [
+  "Monthly AI Coach Report",
+  "Recurring Leak Detection",
+  "Long-term Progress Trends",
+  "Personalized Study Plan",
+];
 
 function SaveReviewsCard({
   email,
