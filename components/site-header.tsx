@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getCurrentUserProfile } from "@/lib/profile-client";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
@@ -147,7 +147,7 @@ export function SiteHeader({
 
           <div className="flex min-w-0 justify-center">
             <nav
-              className="flex min-w-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-slate-900/70 bg-slate-950/20 px-1 py-1"
+              className="flex min-w-0 items-center justify-center gap-1 overflow-visible rounded-full border border-slate-900/70 bg-slate-950/20 px-1 py-1"
               aria-label="Main navigation"
             >
               {primaryDesktopItems.map((item) => (
@@ -432,22 +432,48 @@ function MoreNavigation({
   onOpenChange: (isOpen: boolean) => void;
   pathname: string;
 }) {
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const isActive = items.some((item) =>
     item.match.some((path) => pathname === path || pathname.startsWith(`${path}/`)),
   );
 
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        dropdownRef.current &&
+        event.target instanceof Node &&
+        !dropdownRef.current.contains(event.target)
+      ) {
+        onOpenChange(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onOpenChange(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onOpenChange]);
+
   return (
-    <div className="relative">
+    <div ref={dropdownRef} className="relative">
       <button
         type="button"
         aria-expanded={isOpen}
         aria-haspopup="menu"
         onClick={() => onOpenChange(!isOpen)}
-        onBlur={(event) => {
-          if (!event.currentTarget.parentElement?.contains(event.relatedTarget)) {
-            onOpenChange(false);
-          }
-        }}
         className={cn(
           "inline-flex rounded-full border px-3 py-1.5 text-sm font-medium transition duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-slate-900/70 hover:text-slate-100 hover:shadow-[0_10px_30px_rgba(15,23,42,0.28)] active:scale-[0.97]",
           isActive
@@ -468,7 +494,14 @@ function MoreNavigation({
               href={item.href}
               role="menuitem"
               onClick={() => onOpenChange(false)}
-              className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:bg-slate-900/80 hover:text-slate-50 active:scale-[0.98]"
+              className={cn(
+                "rounded-xl px-3 py-2 text-sm font-medium transition duration-200 hover:bg-slate-900/80 hover:text-slate-50 active:scale-[0.98]",
+                item.match.some(
+                  (path) => pathname === path || pathname.startsWith(`${path}/`),
+                )
+                  ? "bg-primary/10 text-sky-100"
+                  : "text-slate-300",
+              )}
             >
               {item.label}
             </Link>
