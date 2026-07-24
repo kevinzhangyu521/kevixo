@@ -8,6 +8,17 @@
 - Discord avatar: `public/brand/discord-avatar.png`
 - GitHub avatar: `public/brand/github-avatar.png`
 - X avatar: `public/brand/x-avatar.png`
+- Master social banner: `public/brand/kevixo-social-banner.png`
+- X / Twitter banner: `public/brand/kevixo-x-banner.png`
+- YouTube channel banner: `public/brand/kevixo-youtube-banner.png`
+- Discord banner: `public/brand/kevixo-discord-banner.png`
+
+## Social Banner Assets
+
+- `kevixo-social-banner.png` is the master social branding image. Keep it unchanged as the source artwork for future platform crops.
+- `kevixo-x-banner.png` is optimized for X / Twitter at `1500x500`.
+- `kevixo-youtube-banner.png` is optimized for YouTube channel branding at `2560x1440`.
+- `kevixo-discord-banner.png` is optimized for Discord profile or server branding at `960x540`.
 
 ## Brand Colors
 
