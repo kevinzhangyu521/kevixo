@@ -36,6 +36,8 @@ export type UserReviewHistoryItem = {
   title: string;
   platform: string;
   grade: string;
+  confidence: number;
+  leak: string;
   mistake: string;
   summary: string;
 };
@@ -123,14 +125,20 @@ export async function listHandReviewsForUser(userId: string) {
   const supabase = getHandReviewAdminClient();
   const { data, error } = await supabase
     .from(tableName)
-    .select("id, review_id, created_at, hand_history, review_json, grade")
+    .select("id, review_id, created_at, hand_history, review_json, grade, confidence")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .returns<
       Array<
         Pick<
           HandReviewRow,
-          "id" | "review_id" | "created_at" | "hand_history" | "review_json" | "grade"
+          | "id"
+          | "review_id"
+          | "created_at"
+          | "hand_history"
+          | "review_json"
+          | "grade"
+          | "confidence"
         >
       >
     >();
@@ -190,7 +198,7 @@ function fromRow(row: HandReviewRow): PersistedHandReview {
 function toUserHistoryItem(
   row: Pick<
     HandReviewRow,
-    "id" | "review_id" | "created_at" | "hand_history" | "review_json" | "grade"
+    "id" | "review_id" | "created_at" | "hand_history" | "review_json" | "grade" | "confidence"
   >,
 ): UserReviewHistoryItem {
   const report = row.review_json;
@@ -203,6 +211,8 @@ function toUserHistoryItem(
     title: buildHandTitle(row.hand_history),
     platform: detectHandHistoryPlatform(row.hand_history).platform,
     grade: row.grade ?? report.grade ?? "N/A",
+    confidence: row.confidence ?? Math.round(report.confidence),
+    leak: report.leak || report.biggestMistake || "No main leak recorded.",
     mistake: report.biggestMistake || "No key mistake recorded.",
     summary: report.keyLesson || "Review saved.",
   };
