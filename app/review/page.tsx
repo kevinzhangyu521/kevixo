@@ -31,6 +31,7 @@ import { findStoredReview, saveStoredReview } from "@/lib/review-store";
 import { saveGrowthEvent, saveReviewEmail } from "@/lib/growth-client";
 import { getAuthHeaders } from "@/lib/auth-client";
 import { parseHandHistory } from "@/lib/hand-history/parser";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import type { CoachingReport } from "@/services/ai";
 
 const loadingSteps = [
@@ -83,6 +84,7 @@ export default function ReviewPage() {
   const [saveEmailStatus, setSaveEmailStatus] = useState("Email is optional.");
   const [isSaveEmailSaving, setIsSaveEmailSaving] = useState(false);
   const [isSaveEmailSent, setIsSaveEmailSent] = useState(false);
+  const [isAccountConnected, setIsAccountConnected] = useState(false);
 
   const loadStoredReviewFromServer = useCallback(async (reviewId: string) => {
     try {
@@ -154,6 +156,24 @@ export default function ReviewPage() {
 
     return () => window.clearInterval(interval);
   }, [isLoading]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+
+    void supabase.auth.getSession().then(({ data }) => {
+      setIsAccountConnected(Boolean(data.session));
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAccountConnected(Boolean(session));
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   const trimmedHand = handHistory.trim();
   const characterCount = handHistory.length;
@@ -331,7 +351,7 @@ export default function ReviewPage() {
           </p>
         </div>
 
-        <PlayerMemoryCard reviews={memoryReviews} />
+        <PlayerMemoryCard reviews={memoryReviews} isAccountConnected={isAccountConnected} />
 
         <Card className="mt-7 p-5 md:p-6">
           <form onSubmit={handleAnalyze}>
@@ -709,7 +729,13 @@ function FeedbackWidget({
   );
 }
 
-function PlayerMemoryCard({ reviews }: { reviews: PlayerMemoryEntry[] }) {
+function PlayerMemoryCard({
+  isAccountConnected,
+  reviews,
+}: {
+  isAccountConnected: boolean;
+  reviews: PlayerMemoryEntry[];
+}) {
   const insights = getPlayerMemoryInsights(reviews);
   const latestReview = reviews[0];
 
@@ -719,12 +745,13 @@ function PlayerMemoryCard({ reviews }: { reviews: PlayerMemoryEntry[] }) {
         <div>
           <CardTitle>Player Memory</CardTitle>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            Local coaching memory from your latest {reviews.length}{" "}
-            {reviews.length === 1 ? "review" : "reviews"}.
+            {isAccountConnected
+              ? "Your reviews can be synced to your Kevixo account."
+              : "Your reviews are saved locally. Create an account to sync your history."}
           </p>
         </div>
         <div className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-          No login
+          {isAccountConnected ? "Account Connected" : "Guest Mode"}
         </div>
       </div>
 

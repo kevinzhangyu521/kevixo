@@ -54,6 +54,7 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(copy.status);
+  const [authError, setAuthError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const isPasswordRequired = mode !== "reset" || isPasswordRecovery;
@@ -86,6 +87,7 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
     }
 
     setIsSubmitting(true);
+    setAuthError("");
     setStatus(getSubmittingStatus(mode, isPasswordRecovery));
 
     try {
@@ -158,6 +160,7 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
       if (auth.error) {
+        setAuthError(getFriendlyLoginError(auth.error.message));
         throw new Error(auth.error.message);
       }
 
@@ -230,6 +233,15 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? copy.loadingSubmit : getSubmitLabel(mode, isPasswordRecovery)}
           </Button>
+          {mode === "sign-in" && authError ? (
+            <div
+              className="rounded-xl border border-red-400/40 bg-red-950/45 px-4 py-3"
+              role="alert"
+            >
+              <p className="text-sm font-semibold text-red-100">Login failed</p>
+              <p className="mt-1 text-sm leading-6 text-red-200">{authError}</p>
+            </div>
+          ) : null}
         </form>
 
         <AuthPageLinks mode={mode} isPasswordRecovery={isPasswordRecovery} />
@@ -308,6 +320,21 @@ function getSubmittingStatus(mode: AuthMode, isPasswordRecovery: boolean) {
   }
 
   return authCopy[mode].submitting;
+}
+
+function getFriendlyLoginError(message: string) {
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("invalid login") ||
+    normalizedMessage.includes("invalid credentials") ||
+    normalizedMessage.includes("email") ||
+    normalizedMessage.includes("password")
+  ) {
+    return "The email or password you entered is incorrect. Please try again.";
+  }
+
+  return message || "The email or password you entered is incorrect. Please try again.";
 }
 
 function getRedirectPath() {

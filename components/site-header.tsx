@@ -82,7 +82,14 @@ export function SiteHeader({
 
   return (
     <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 md:py-8">
-      <Link href="/" className="flex items-center gap-3" aria-label="Kevixo home">
+      <Link
+        href="/"
+        className={cn(
+          "flex shrink-0 items-center gap-3",
+          larger ? "w-[156px] md:w-[172px]" : "w-[132px] md:w-[148px]",
+        )}
+        aria-label="Kevixo home"
+      >
         <Image
           src="/brand/kevixo-logo.svg"
           alt="Kevixo"
@@ -90,7 +97,7 @@ export function SiteHeader({
           height={160}
           priority={larger}
           className={cn(
-            "h-9 w-auto",
+            "shrink-0 object-contain",
             larger ? "h-11" : "h-9",
           )}
         />
