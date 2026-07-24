@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { CoachingReport } from "@/services/ai";
+import { detectHandHistoryPlatform } from "@/lib/hand-history/detector";
 
 type HandReviewRow = {
   id: string;
@@ -25,6 +26,18 @@ export type PersistedHandReview = {
   sourcePage: string;
   userAgent?: string;
   aiVersion: string;
+};
+
+export type UserReviewHistoryItem = {
+  id: string;
+  reviewId: string;
+  createdAt: string;
+  created_at: string;
+  title: string;
+  platform: string;
+  grade: string;
+  mistake: string;
+  summary: string;
 };
 
 const tableName = "hand_reviews";
@@ -90,6 +103,45 @@ export async function findHandReviewByReviewId(reviewId: string) {
   return data ? fromRow(data) : null;
 }
 
+export async function findHandReviewForUserByReviewId(userId: string, reviewId: string) {
+  const supabase = getHandReviewAdminClient();
+  const { data, error } = await supabase
+    .from(tableName)
+    .select("*")
+    .eq("user_id", userId)
+    .eq("review_id", reviewId)
+    .maybeSingle<HandReviewRow>();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ? fromRow(data) : null;
+}
+
+export async function listHandReviewsForUser(userId: string) {
+  const supabase = getHandReviewAdminClient();
+  const { data, error } = await supabase
+    .from(tableName)
+    .select("id, review_id, created_at, hand_history, review_json, grade")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .returns<
+      Array<
+        Pick<
+          HandReviewRow,
+          "id" | "review_id" | "created_at" | "hand_history" | "review_json" | "grade"
+        >
+      >
+    >();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map(toUserHistoryItem);
+}
+
 function getHandReviewServerClient() {
   const supabaseUrl = getSupabaseUrl();
   const supabaseKey = getSupabaseServiceRoleKey() ?? getSupabaseAnonKey();
@@ -133,6 +185,43 @@ function fromRow(row: HandReviewRow): PersistedHandReview {
     userAgent: row.user_agent ?? undefined,
     aiVersion: row.ai_version,
   };
+}
+
+function toUserHistoryItem(
+  row: Pick<
+    HandReviewRow,
+    "id" | "review_id" | "created_at" | "hand_history" | "review_json" | "grade"
+  >,
+): UserReviewHistoryItem {
+  const report = row.review_json;
+
+  return {
+    id: row.id,
+    reviewId: row.review_id,
+    createdAt: row.created_at,
+    created_at: row.created_at,
+    title: buildHandTitle(row.hand_history),
+    platform: detectHandHistoryPlatform(row.hand_history).platform,
+    grade: row.grade ?? report.grade ?? "N/A",
+    mistake: report.biggestMistake || "No key mistake recorded.",
+    summary: report.keyLesson || "Review saved.",
+  };
+}
+
+function buildHandTitle(handHistory: string) {
+  const firstMeaningfulLine =
+    handHistory
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0) ?? "";
+
+  if (!firstMeaningfulLine) {
+    return "Poker Hand Review";
+  }
+
+  return firstMeaningfulLine.length > 82
+    ? `${firstMeaningfulLine.slice(0, 79)}...`
+    : firstMeaningfulLine;
 }
 
 function getSupabaseUrl() {

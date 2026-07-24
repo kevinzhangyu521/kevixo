@@ -50,6 +50,17 @@ type AnalyzeResponse =
 
 type ErrorResponse = { error?: string };
 
+type ReviewLookupResponse = {
+  ok: boolean;
+  review?: {
+    reviewId: string;
+    createdAt: string;
+    handHistory: string;
+    report: CoachingReport;
+  };
+  error?: string;
+};
+
 export default function ReviewPage() {
   const [handHistory, setHandHistory] = useState(demoHands[0].hand);
   const [selectedDemoId, setSelectedDemoId] = useState(demoHands[0].id);
@@ -75,19 +86,14 @@ export default function ReviewPage() {
 
   const loadStoredReviewFromServer = useCallback(async (reviewId: string) => {
     try {
-      const response = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}`, {
-        headers: await getAuthHeaders(),
-      });
-      const payload = (await response.json()) as {
-        ok: boolean;
-        review?: {
-          reviewId: string;
-          createdAt: string;
-          handHistory: string;
-          report: CoachingReport;
-        };
-        error?: string;
-      };
+      const headers = await getAuthHeaders();
+      let response = await fetch(`/api/reviews/${encodeURIComponent(reviewId)}`, { headers });
+      let payload = (await response.json()) as ReviewLookupResponse;
+
+      if (!response.ok || !payload.ok || !payload.review) {
+        response = await fetch(`/api/admin/reviews/${encodeURIComponent(reviewId)}`, { headers });
+        payload = (await response.json()) as ReviewLookupResponse;
+      }
 
       if (!response.ok || !payload.ok || !payload.review) {
         throw new Error(payload.error ?? "Review not available.");

@@ -21,6 +21,21 @@ import {
 } from "@/lib/supabase";
 import type { Subscription } from "@/lib/subscription";
 
+type AccountReviewsResponse = {
+  ok: boolean;
+  reviews?: Array<{
+    createdAt: string;
+    created_at?: string;
+  }>;
+  error?: string;
+};
+
+type ReviewHistorySummary = {
+  totalReviews: number;
+  latestReviewAt?: string;
+  isLoading: boolean;
+};
+
 export default function AccountPage() {
   const router = useRouter();
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +45,10 @@ export default function AccountPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isCoach, setIsCoach] = useState(false);
   const [status, setStatus] = useState("Loading your account...");
+  const [reviewHistory, setReviewHistory] = useState<ReviewHistorySummary>({
+    totalReviews: 0,
+    isLoading: true,
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
@@ -75,8 +94,28 @@ export default function AccountPage() {
         setIsCoach(Boolean(payload.isCoach));
       }
 
+      const reviewsResponse = await fetch("/api/reviews", {
+        headers: await getAuthHeaders(),
+      });
+      const reviewsPayload = (await reviewsResponse.json()) as AccountReviewsResponse;
+
+      if (reviewsResponse.ok && reviewsPayload.ok) {
+        const reviews = reviewsPayload.reviews ?? [];
+        setReviewHistory({
+          totalReviews: reviews.length,
+          latestReviewAt: reviews[0]?.createdAt ?? reviews[0]?.created_at,
+          isLoading: false,
+        });
+      } else {
+        setReviewHistory({
+          totalReviews: 0,
+          isLoading: false,
+        });
+      }
+
       setStatus("Account ready.");
     } catch (error) {
+      setReviewHistory((current) => ({ ...current, isLoading: false }));
       setStatus(error instanceof Error ? error.message : "Account could not be loaded.");
     }
   }, [router]);
@@ -224,15 +263,39 @@ export default function AccountPage() {
           <div className="grid gap-5">
             <Card className="p-5 md:p-6">
               <CardTitle>Review History</CardTitle>
-              <p className="mt-4 text-sm leading-6 text-slate-400">
-                Your account is ready for saved review ownership. Full synced review history will
-                appear here in a later sprint. Your current browser history remains available today.
-              </p>
-              <div className="mt-5">
-                <Button asChild variant="secondary">
-                  <Link href="/my-reviews">Open My Reviews</Link>
-                </Button>
-              </div>
+              {reviewHistory.isLoading ? (
+                <p className="mt-4 text-sm leading-6 text-slate-400">
+                  Loading review history...
+                </p>
+              ) : reviewHistory.totalReviews > 0 ? (
+                <>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <InfoRow label="Total Reviews" value={String(reviewHistory.totalReviews)} />
+                    <InfoRow
+                      label="Latest Review"
+                      value={
+                        reviewHistory.latestReviewAt
+                          ? formatDate(reviewHistory.latestReviewAt)
+                          : "Not available"
+                      }
+                    />
+                  </div>
+                  <div className="mt-5">
+                    <Button asChild variant="secondary">
+                      <Link href="/my-reviews">View My Reviews</Link>
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mt-4 text-sm leading-6 text-slate-400">No reviews yet.</p>
+                  <div className="mt-5">
+                    <Button asChild variant="secondary">
+                      <Link href="/review">Analyze your first hand</Link>
+                    </Button>
+                  </div>
+                </>
+              )}
             </Card>
 
             <Card className="p-5 md:p-6">
