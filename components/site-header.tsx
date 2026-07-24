@@ -16,31 +16,32 @@ type SiteHeaderProps = {
 
 const primaryNavigationItems = [
   { label: "Analyzer", href: "/review", match: ["/review"] },
+  { label: "My Reviews", href: "/my-reviews", match: ["/my-reviews"] },
+  { label: "Progress", href: "/progress", match: ["/progress"] },
+  { label: "Daily", href: "/daily", match: ["/daily"] },
+];
+
+const secondaryNavigationItems = [
   { label: "Pricing", href: "/pricing", match: ["/pricing"] },
   { label: "Blog", href: "/blog", match: ["/blog"] },
   { label: "About", href: "/about", match: ["/about"] },
 ];
 
-const userNavigationItems = [
-  { label: "My Reviews", href: "/my-reviews", match: ["/my-reviews"] },
-  { label: "Progress", href: "/progress", match: ["/progress"] },
-  { label: "Daily", href: "/daily", match: ["/daily"] },
-  { label: "Profile", href: "/profile", match: ["/profile"] },
-];
-
 const adminNavigationItem = { label: "Admin", href: "/admin", match: ["/admin"] };
 
-const mainNavigationItems = [...primaryNavigationItems, ...userNavigationItems];
+const profileNavigationItem = { label: "Profile", href: "/profile", match: ["/profile"] };
+
+const mobileNavigationItems = [
+  ...primaryNavigationItems,
+  profileNavigationItem,
+  ...secondaryNavigationItems,
+];
 
 const visibilityByLabel: Record<string, string> = {
   Analyzer: "inline-flex",
-  Pricing: "inline-flex",
-  Blog: "inline-flex",
-  About: "inline-flex",
   "My Reviews": "inline-flex",
   Progress: "inline-flex",
   Daily: "inline-flex",
-  Profile: "inline-flex",
 };
 
 export function SiteHeader({
@@ -53,6 +54,10 @@ export function SiteHeader({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const primaryDesktopItems = isLoggedIn
+    ? [...primaryNavigationItems, profileNavigationItem]
+    : primaryNavigationItems;
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -89,6 +94,7 @@ export function SiteHeader({
     setIsLoggedIn(false);
     setIsAdmin(false);
     setIsMobileMenuOpen(false);
+    setIsMoreMenuOpen(false);
     router.push("/");
     router.refresh();
   }
@@ -133,8 +139,8 @@ export function SiteHeader({
           className={cn(
             "hidden w-full items-center gap-4 xl:grid",
             larger
-              ? "grid-cols-[172px_minmax(0,1fr)_440px]"
-              : "grid-cols-[148px_minmax(0,1fr)_440px]",
+              ? "grid-cols-[172px_minmax(0,1fr)_480px]"
+              : "grid-cols-[148px_minmax(0,1fr)_480px]",
           )}
         >
           <BrandLink larger={larger} />
@@ -144,9 +150,15 @@ export function SiteHeader({
               className="flex min-w-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-slate-900/70 bg-slate-950/20 px-1 py-1"
               aria-label="Main navigation"
             >
-              {mainNavigationItems.map((item) => (
+              {primaryDesktopItems.map((item) => (
                 <NavigationLink key={item.href} item={item} pathname={pathname} />
               ))}
+              <MoreNavigation
+                isOpen={isMoreMenuOpen}
+                items={secondaryNavigationItems}
+                onOpenChange={setIsMoreMenuOpen}
+                pathname={pathname}
+              />
             </nav>
           </div>
 
@@ -187,7 +199,7 @@ export function SiteHeader({
             className="grid gap-2 rounded-2xl border border-slate-800 bg-slate-950/92 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34)]"
             aria-label="Mobile navigation"
           >
-            {mainNavigationItems.map((item) => (
+            {mobileNavigationItems.map((item) => (
               <MobileNavigationLink
                 key={item.href}
                 item={item}
@@ -406,6 +418,64 @@ function NavigationLink({ item, pathname }: { item: NavigationItem; pathname: st
     >
       {item.label}
     </Link>
+  );
+}
+
+function MoreNavigation({
+  isOpen,
+  items,
+  onOpenChange,
+  pathname,
+}: {
+  isOpen: boolean;
+  items: NavigationItem[];
+  onOpenChange: (isOpen: boolean) => void;
+  pathname: string;
+}) {
+  const isActive = items.some((item) =>
+    item.match.some((path) => pathname === path || pathname.startsWith(`${path}/`)),
+  );
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        onClick={() => onOpenChange(!isOpen)}
+        onBlur={(event) => {
+          if (!event.currentTarget.parentElement?.contains(event.relatedTarget)) {
+            onOpenChange(false);
+          }
+        }}
+        className={cn(
+          "inline-flex rounded-full border px-3 py-1.5 text-sm font-medium transition duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:bg-slate-900/70 hover:text-slate-100 hover:shadow-[0_10px_30px_rgba(15,23,42,0.28)] active:scale-[0.97]",
+          isActive
+            ? "border-primary/30 bg-primary/10 text-sky-100 shadow-[0_0_24px_rgba(59,201,255,0.14)]"
+            : "border-transparent text-slate-500",
+        )}
+      >
+        More
+      </button>
+      {isOpen ? (
+        <div
+          className="absolute right-0 top-full z-30 mt-2 grid min-w-36 gap-1 rounded-2xl border border-slate-800 bg-slate-950/95 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.42)]"
+          role="menu"
+        >
+          {items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              role="menuitem"
+              onClick={() => onOpenChange(false)}
+              className="rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:bg-slate-900/80 hover:text-slate-50 active:scale-[0.98]"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
