@@ -25,6 +25,7 @@ export default function AccountPage() {
   const router = useRouter();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [authEmail, setAuthEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isCoach, setIsCoach] = useState(false);
@@ -39,6 +40,16 @@ export default function AccountPage() {
     }
 
     try {
+      const supabase = getSupabaseClient();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        router.push("/login?redirect=/account");
+        return;
+      }
+
+      setAuthEmail(userData.user.email ?? "");
+
       const nextProfile = await getCurrentUserProfile();
 
       if (!nextProfile) {
@@ -189,7 +200,7 @@ export default function AccountPage() {
                   </div>
                 </div>
               </div>
-              <InfoRow label="Email" value={profile?.email ?? "Loading..."} />
+              <InfoRow label="Email" value={authEmail || profile?.email || "Loading..."} />
             </div>
 
             <form onSubmit={handleSaveProfile} className="mt-6 grid gap-4">

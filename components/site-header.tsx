@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AccountNav } from "@/components/account-nav";
+import { getCurrentUserProfile } from "@/lib/profile-client";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,8 @@ const userNavigationItems = [
   { label: "Profile", href: "/profile", match: ["/profile"] },
 ];
 
+const adminNavigationItem = { label: "Admin", href: "/admin", match: ["/admin"] };
+
 const visibilityByLabel: Record<string, string> = {
   Analyzer: "lg:inline-flex",
   Pricing: "lg:inline-flex",
@@ -37,6 +40,7 @@ const visibilityByLabel: Record<string, string> = {
   Progress: "xl:inline-flex",
   Daily: "xl:inline-flex",
   Profile: "xl:inline-flex",
+  Admin: "inline-flex",
 };
 
 export function SiteHeader({
@@ -48,6 +52,7 @@ export function SiteHeader({
   const isAuthRoute =
     pathname === "/login" || pathname === "/signup" || pathname === "/reset-password";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -58,10 +63,18 @@ export function SiteHeader({
 
     void supabase.auth.getSession().then(({ data }) => {
       setIsLoggedIn(Boolean(data.session));
+      if (data.session) {
+        void refreshAdminStatus().then(setIsAdmin);
+      }
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(Boolean(session));
+      if (session) {
+        void refreshAdminStatus().then(setIsAdmin);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => data.subscription.unsubscribe();
@@ -98,6 +111,11 @@ export function SiteHeader({
             ))}
           </nav>
         ) : null}
+        {isLoggedIn && isAdmin && !isAuthRoute ? (
+          <nav className="flex items-center gap-1" aria-label="Admin navigation">
+            <NavigationLink item={adminNavigationItem} pathname={pathname} />
+          </nav>
+        ) : null}
         {!isAuthRoute ? (
           <Link
             href="/pricing"
@@ -120,6 +138,16 @@ export function SiteHeader({
       </div>
     </header>
   );
+}
+
+async function refreshAdminStatus() {
+  try {
+    const profile = await getCurrentUserProfile();
+
+    return profile?.role === "admin" && profile.status === "active";
+  } catch {
+    return false;
+  }
 }
 
 type NavigationItem = {
