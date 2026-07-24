@@ -485,7 +485,7 @@ function MoreNavigation({
       </button>
       {isOpen ? (
         <div
-          className="absolute right-0 top-full z-30 mt-2 grid min-w-36 gap-1 rounded-2xl border border-slate-800 bg-slate-950/95 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.42)]"
+          className="absolute right-0 top-full z-50 mt-1.5 grid min-w-36 gap-1 rounded-2xl border border-slate-700/80 bg-[#020617] p-2 shadow-[0_18px_48px_rgba(0,0,0,0.58),0_0_0_1px_rgba(59,201,255,0.08)]"
           role="menu"
         >
           {items.map((item) => (
