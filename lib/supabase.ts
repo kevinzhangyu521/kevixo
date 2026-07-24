@@ -1,8 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrlResult = readSupabaseProjectUrl();
 const supabaseUrl = supabaseUrlResult.url;
 const supabaseAnonKey = readRuntimeEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+let browserClient: SupabaseClient | undefined;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -13,7 +14,16 @@ export function getSupabaseClient() {
     );
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey);
+  browserClient ??= createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      persistSession: true,
+      storageKey: "kevixo-auth-session",
+    },
+  });
+
+  return browserClient;
 }
 
 export function getSupabaseConfigurationError() {

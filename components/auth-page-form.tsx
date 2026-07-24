@@ -166,6 +166,13 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         return;
       }
 
+      const { data: persistedSession } = await supabase.auth.getSession();
+
+      if (!persistedSession.session) {
+        setStatus("Sign in completed, but the browser session was not saved. Please try again.");
+        return;
+      }
+
       try {
         await ensureUserProfile();
       } catch (profileError) {
