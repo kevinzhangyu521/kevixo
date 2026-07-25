@@ -97,7 +97,7 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         const { error } = await supabase.auth.updateUser({ password });
 
         if (error) {
-          throw new Error(error.message);
+          throw error;
         }
 
         setStatus("Password updated. You can now continue using Kevixo.");
@@ -114,7 +114,7 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         });
 
         if (error) {
-          throw new Error(error.message);
+          throw error;
         }
 
         setStatus("Password reset email sent. Check your inbox for the next step.");
@@ -131,7 +131,8 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         });
 
         if (error) {
-          throw new Error(error.message);
+          setAuthError(getFriendlySignupError(error));
+          throw error;
         }
 
         if (data.session) {
@@ -160,8 +161,8 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         await supabase.auth.signInWithPassword({ email: email.trim(), password });
 
       if (auth.error) {
-        setAuthError(getFriendlyLoginError(auth.error.message));
-        throw new Error(auth.error.message);
+        setAuthError(getFriendlyLoginError(auth.error));
+        throw auth.error;
       }
 
       if (!auth.data.session) {
@@ -187,7 +188,10 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
       router.push(getRedirectPath());
       router.refresh();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Account action failed. Please try again.");
+      const friendlyError = getFriendlyAuthError(mode, error);
+
+      setAuthError((current) => current || friendlyError);
+      setStatus(friendlyError);
     } finally {
       setIsSubmitting(false);
     }
@@ -230,18 +234,18 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
               />
             </label>
           ) : null}
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? copy.loadingSubmit : getSubmitLabel(mode, isPasswordRecovery)}
-          </Button>
-          {mode === "sign-in" && authError ? (
+          {authError ? (
             <div
               className="rounded-xl border border-red-400/40 bg-red-950/45 px-4 py-3"
               role="alert"
             >
-              <p className="text-sm font-semibold text-red-100">Login failed</p>
+              <p className="text-sm font-semibold text-red-100">{getErrorTitle(mode)}</p>
               <p className="mt-1 text-sm leading-6 text-red-200">{authError}</p>
             </div>
           ) : null}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? copy.loadingSubmit : getSubmitLabel(mode, isPasswordRecovery)}
+          </Button>
         </form>
 
         <AuthPageLinks mode={mode} isPasswordRecovery={isPasswordRecovery} />
@@ -322,7 +326,68 @@ function getSubmittingStatus(mode: AuthMode, isPasswordRecovery: boolean) {
   return authCopy[mode].submitting;
 }
 
-function getFriendlyLoginError(message: string) {
+function getErrorTitle(mode: AuthMode) {
+  if (mode === "sign-up") {
+    return "Signup failed";
+  }
+
+  if (mode === "reset") {
+    return "Password reset failed";
+  }
+
+  return "Login failed";
+}
+
+function getFriendlyAuthError(mode: AuthMode, error: unknown) {
+  if (mode === "sign-up") {
+    return getFriendlySignupError(error);
+  }
+
+  if (mode === "sign-in") {
+    return getFriendlyLoginError(error);
+  }
+
+  const message = getSafeAuthErrorMessage(error);
+
+  return message || "Something went wrong. Please try again.";
+}
+
+function getFriendlySignupError(error: unknown) {
+  const message = getSafeAuthErrorMessage(error);
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("already registered") ||
+    normalizedMessage.includes("already exists") ||
+    normalizedMessage.includes("user already") ||
+    normalizedMessage.includes("user_already_exists") ||
+    normalizedMessage.includes("email_exists")
+  ) {
+    return "An account with this email already exists. Please sign in instead.";
+  }
+
+  if (
+    normalizedMessage.includes("invalid email") ||
+    normalizedMessage.includes("email address is invalid") ||
+    normalizedMessage.includes("invalid_email")
+  ) {
+    return "Please enter a valid email address.";
+  }
+
+  if (
+    normalizedMessage.includes("weak password") ||
+    normalizedMessage.includes("password should be at least") ||
+    normalizedMessage.includes("password must be at least") ||
+    normalizedMessage.includes("password") && normalizedMessage.includes("6")
+  ) {
+    return "Password must be at least 6 characters.";
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
+function getFriendlyLoginError(error: unknown) {
+  const message = getSafeAuthErrorMessage(error);
   const normalizedMessage = message.toLowerCase();
 
   if (
@@ -335,6 +400,48 @@ function getFriendlyLoginError(message: string) {
   }
 
   return message || "The email or password you entered is incorrect. Please try again.";
+}
+
+function getSafeAuthErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return normalizeAuthMessage(error.message);
+  }
+
+  if (typeof error === "string") {
+    return normalizeAuthMessage(error);
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const possibleMessage = readStringProperty(error, "message");
+    const possibleDescription = readStringProperty(error, "error_description");
+    const possibleCode = readStringProperty(error, "code");
+
+    return normalizeAuthMessage(possibleMessage || possibleDescription || possibleCode);
+  }
+
+  return "";
+}
+
+function readStringProperty(value: object, key: string) {
+  if (key in value) {
+    const property = (value as Record<string, unknown>)[key];
+
+    if (typeof property === "string") {
+      return property;
+    }
+  }
+
+  return "";
+}
+
+function normalizeAuthMessage(message: string) {
+  const normalized = message.trim();
+
+  if (!normalized || normalized === "{}" || normalized === "[object Object]") {
+    return "";
+  }
+
+  return normalized;
 }
 
 function getRedirectPath() {
