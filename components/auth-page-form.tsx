@@ -131,6 +131,7 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         });
 
         if (error) {
+          logSignupFailure(error);
           setAuthError(getFriendlySignupError(error));
           throw error;
         }
@@ -386,6 +387,20 @@ function getFriendlySignupError(error: unknown) {
   return "Something went wrong. Please try again.";
 }
 
+function logSignupFailure(error: unknown) {
+  if (process.env.NODE_ENV !== "development") {
+    return;
+  }
+
+  console.error("Kevixo signup failed", {
+    message: getSafeAuthErrorMessage(error),
+    name: getAuthErrorName(error),
+    code: readAuthErrorProperty(error, "code"),
+    status: readAuthErrorProperty(error, "status"),
+    fullError: getSerializableAuthError(error),
+  });
+}
+
 function getFriendlyLoginError(error: unknown) {
   const message = getSafeAuthErrorMessage(error);
   const normalizedMessage = message.toLowerCase();
@@ -422,6 +437,32 @@ function getSafeAuthErrorMessage(error: unknown) {
   return "";
 }
 
+function getAuthErrorName(error: unknown) {
+  if (error instanceof Error) {
+    return error.name;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    return readStringProperty(error, "name");
+  }
+
+  return "";
+}
+
+function readAuthErrorProperty(error: unknown, key: string) {
+  if (typeof error !== "object" || error === null || !(key in error)) {
+    return "";
+  }
+
+  const property = (error as Record<string, unknown>)[key];
+
+  if (typeof property === "string" || typeof property === "number") {
+    return property;
+  }
+
+  return "";
+}
+
 function readStringProperty(value: object, key: string) {
   if (key in value) {
     const property = (value as Record<string, unknown>)[key];
@@ -432,6 +473,31 @@ function readStringProperty(value: object, key: string) {
   }
 
   return "";
+}
+
+function getSerializableAuthError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      ...copyEnumerableProperties(error),
+    };
+  }
+
+  if (typeof error === "object" && error !== null) {
+    return copyEnumerableProperties(error);
+  }
+
+  return error;
+}
+
+function copyEnumerableProperties(value: object) {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, property]) => [
+      key,
+      typeof property === "bigint" ? property.toString() : property,
+    ]),
+  );
 }
 
 function normalizeAuthMessage(message: string) {
