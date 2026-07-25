@@ -7,12 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders, getCurrentAccessToken } from "@/lib/auth-client";
 
-const freeFeatures = ["Hand Review", "Daily Challenge", "Weekly Progress", "Review History"];
+const freeFeatures = [
+  "Hand Review",
+  "Basic AI Feedback",
+  "Recent Review History",
+  "Daily Learning Practice",
+];
 const coachFeatures = [
-  "Monthly Coach Report",
-  "Coach Timeline",
-  "Full Progress History",
-  "Future Coach Features",
+  "Unlimited Hand Reviews",
+  "Personal Leak Detection",
+  "Progress Tracking",
+  "Monthly Improvement Reports",
 ];
 
 export default function PricingPage() {
@@ -46,7 +51,7 @@ export default function PricingPage() {
 
       window.location.href = payload.url;
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Checkout could not be started.");
+      setStatus(getFriendlyCheckoutStatus(error));
       setIsLoading(false);
     }
   }
@@ -84,7 +89,7 @@ export default function PricingPage() {
             highlighted
             title="Coach"
             price="$9.99/month"
-            description="For players who want their improvement to compound over time."
+            description="For players who want their improvement to compound over time. Cancel anytime. No long-term commitment."
             features={coachFeatures}
             action={
               <Button onClick={startCheckout} disabled={isLoading}>
@@ -98,6 +103,21 @@ export default function PricingPage() {
       </section>
     </main>
   );
+}
+
+function getFriendlyCheckoutStatus(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("stripe") ||
+    normalizedMessage.includes("secret_key") ||
+    normalizedMessage.includes("not configured")
+  ) {
+    return "Checkout is not available yet. Please try again later.";
+  }
+
+  return message || "Checkout could not be started.";
 }
 
 function PricingCard({

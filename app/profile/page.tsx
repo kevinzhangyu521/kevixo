@@ -61,7 +61,7 @@ export default function ProfilePage() {
 
   async function openBillingPortal() {
     setIsBillingLoading(true);
-    setBillingStatus("Opening Stripe...");
+    setBillingStatus("Opening billing portal...");
 
     try {
       const token = await getCurrentAccessToken();
@@ -83,7 +83,7 @@ export default function ProfilePage() {
 
       window.location.href = payload.url;
     } catch (error) {
-      setBillingStatus(error instanceof Error ? error.message : "Billing portal could not be opened.");
+      setBillingStatus(getFriendlyBillingStatus(error));
       setIsBillingLoading(false);
     }
   }
@@ -208,6 +208,21 @@ export default function ProfilePage() {
       </section>
     </main>
   );
+}
+
+function getFriendlyBillingStatus(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("stripe") ||
+    normalizedMessage.includes("secret_key") ||
+    normalizedMessage.includes("not configured")
+  ) {
+    return "Billing is not available yet. Please try again later.";
+  }
+
+  return message || "Billing portal could not be opened.";
 }
 
 function BillingCard({

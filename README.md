@@ -47,9 +47,6 @@ after the client mounts. Neither blocks initial page rendering.
 - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key used only by server-side admin feedback routes.
 - `NEXT_PUBLIC_ADMIN_FEEDBACK_KEY`: passcode for `/admin/feedback`.
 - `NEXT_PUBLIC_SITE_URL`: production site URL, for example `https://www.kevixo.com`.
-- `STRIPE_SECRET_KEY`: Stripe secret key used only by server-side billing routes.
-- `STRIPE_WEBHOOK_SECRET`: Stripe webhook signing secret for `/api/stripe/webhook`.
-- `STRIPE_COACH_MONTHLY_PRICE_ID`: Stripe monthly subscription price ID for Kevixo Coach.
 
 ### Custom Events
 
@@ -96,8 +93,9 @@ continue to work without requiring an account.
 
 ## Revenue Infrastructure
 
-Kevixo Coach subscriptions use Supabase Auth for identity and Stripe for billing.
-The subscription source of truth is the `subscriptions` table from
+Kevixo Coach subscriptions use Supabase Auth for identity. Billing provider
+configuration is managed through the active production payment setup. The
+subscription source of truth is the `subscriptions` table from
 `supabase/migrations/005_coach_subscriptions.sql`.
 
 Server subscription checks must go through `lib/subscription.ts`:
@@ -106,17 +104,7 @@ Server subscription checks must go through `lib/subscription.ts`:
 - `isCoachUser(userId)`
 - `requireCoach(userId)`
 
-Stripe routes:
+Billing routes:
 
-- `POST /api/billing/checkout`: creates a Stripe Checkout subscription session.
-- `POST /api/billing/portal`: opens the Stripe Customer Portal.
-- `POST /api/stripe/webhook`: receives Stripe subscription lifecycle events.
-
-Required Stripe setup:
-
-1. Create a monthly recurring Stripe Price for `$9.99/month`.
-2. Copy the Price ID into `STRIPE_COACH_MONTHLY_PRICE_ID`.
-3. Add a webhook endpoint for `https://www.kevixo.com/api/stripe/webhook`.
-4. Listen for `checkout.session.completed`, `customer.subscription.created`,
-   `customer.subscription.updated`, and `customer.subscription.deleted`.
-5. Copy the webhook signing secret into `STRIPE_WEBHOOK_SECRET`.
+- `POST /api/billing/checkout`: starts the active subscription checkout flow.
+- `POST /api/billing/portal`: opens the active billing management flow.
