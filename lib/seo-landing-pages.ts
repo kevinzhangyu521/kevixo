@@ -1,4 +1,4 @@
-import { blogArticles } from "@/lib/blog";
+import { blogArticles, getBlogArticle } from "@/lib/blog";
 
 export type SeoLandingPage = {
   slug: string;
@@ -22,6 +22,7 @@ export type SeoLandingPage = {
     title: string;
     description: string;
   }>;
+  relatedArticleSlugs: string[];
   faqs: Array<{
     question: string;
     answer: string;
@@ -100,6 +101,11 @@ export const seoLandingPages = [
         description:
           "Kevixo explains range and EV concepts in language designed for players still building their review process.",
       },
+    ],
+    relatedArticleSlugs: [
+      "poker-hand-history-guide",
+      "how-to-review-poker-hands",
+      "poker-hand-analysis-framework",
     ],
     faqs: [
       {
@@ -205,6 +211,11 @@ export const seoLandingPages = [
         description:
           "Kevixo explains poker concepts in a coaching tone, not in a dense technical output.",
       },
+    ],
+    relatedArticleSlugs: [
+      "how-to-review-poker-hands",
+      "poker-hand-analysis-framework",
+      "poker-analyzer",
     ],
     faqs: [
       {
@@ -312,6 +323,11 @@ export const seoLandingPages = [
           "Each review ends with a small task that turns the theory into a habit.",
       },
     ],
+    relatedArticleSlugs: [
+      "gto-poker-strategy",
+      "ai-poker-coach",
+      "poker-hand-analysis-framework",
+    ],
     faqs: [
       {
         question: "Is Kevixo a GTO solver?",
@@ -418,6 +434,11 @@ export const seoLandingPages = [
           "The report explains leaks in practical poker terms without requiring advanced solver knowledge.",
       },
     ],
+    relatedArticleSlugs: [
+      "poker-mistakes-beginners",
+      "poker-hand-analysis-framework",
+      "how-to-review-poker-hands",
+    ],
     faqs: [
       {
         question: "What is a poker leak?",
@@ -463,6 +484,15 @@ export function getSeoLandingPageUrl(slug: string) {
   return `https://www.kevixo.com/${slug}`;
 }
 
-export function getRelatedArticles() {
+export function getRelatedArticles(slug: string) {
+  const page = getSeoLandingPage(slug);
+  const relatedArticles = page?.relatedArticleSlugs
+    .map((articleSlug) => getBlogArticle(articleSlug))
+    .filter((article) => article !== null);
+
+  if (relatedArticles?.length) {
+    return relatedArticles;
+  }
+
   return blogArticles.slice(0, 3);
 }

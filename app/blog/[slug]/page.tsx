@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import {
   getBlogArticleUrl,
   getCoreStudyArticles,
   getRelatedBlogArticles,
+  getRelatedProductLinks,
 } from "@/lib/blog";
 
 type BlogArticlePageProps = {
@@ -76,6 +78,7 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
 
   const url = getBlogArticleUrl(article.slug);
   const relatedArticles = getRelatedBlogArticles(article.slug);
+  const relatedProductLinks = getRelatedProductLinks(article.slug);
   const coreStudyArticles = getCoreStudyArticles();
   const articleJsonLd = {
     "@context": "https://schema.org",
@@ -166,6 +169,7 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
           ))}
 
           <CoreStudyPath articles={coreStudyArticles} />
+          <RelatedKevixoTools links={relatedProductLinks} />
           <RelatedArticles articles={relatedArticles} />
         </div>
 
@@ -180,6 +184,7 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
           </Button>
         </Card>
       </article>
+      <SiteFooter />
     </main>
   );
 }
@@ -190,6 +195,12 @@ type BlogArticleSummary = {
   description: string;
   category: string;
   readingTime: string;
+};
+
+type BlogProductLinkSummary = {
+  href: string;
+  title: string;
+  description: string;
 };
 
 function CoreStudyPath({ articles }: { articles: BlogArticleSummary[] }) {
@@ -245,6 +256,38 @@ function RelatedArticles({ articles }: { articles: BlogArticleSummary[] }) {
                 {relatedArticle.description}
               </p>
             </div>
+          </Link>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function RelatedKevixoTools({ links }: { links: BlogProductLinkSummary[] }) {
+  if (links.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
+      <CardTitle>Kevixo tools for this topic</CardTitle>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        Continue from the guide into a focused review workflow when you are ready to
+        study your own hand.
+      </p>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="rounded-xl border border-slate-800 bg-slate-900/38 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5"
+          >
+            <span className="text-sm font-semibold leading-6 text-slate-100">
+              {link.title}
+            </span>
+            <span className="mt-2 block text-sm leading-6 text-slate-400">
+              {link.description}
+            </span>
           </Link>
         ))}
       </div>

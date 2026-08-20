@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Card, CardTitle } from "@/components/ui/card";
 
@@ -53,6 +54,7 @@ export default function PrivacyPage() {
           Back to Kevixo
         </Link>
       </section>
+      <SiteFooter />
     </main>
   );
 }

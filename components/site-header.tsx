@@ -483,31 +483,36 @@ function MoreNavigation({
       >
         More
       </button>
-      {isOpen ? (
-        <div
-          className="absolute right-0 top-full z-50 mt-1.5 grid min-w-36 gap-1 rounded-2xl border border-slate-700/80 bg-[#020617] p-2 shadow-[0_18px_48px_rgba(0,0,0,0.58),0_0_0_1px_rgba(59,201,255,0.08)]"
-          role="menu"
-        >
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              role="menuitem"
-              onClick={() => onOpenChange(false)}
-              className={cn(
-                "rounded-xl px-3 py-2 text-sm font-medium transition duration-200 hover:bg-slate-900/80 hover:text-slate-50 active:scale-[0.98]",
-                item.match.some(
-                  (path) => pathname === path || pathname.startsWith(`${path}/`),
-                )
-                  ? "bg-primary/10 text-sky-100"
-                  : "text-slate-300",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      ) : null}
+      <div
+        aria-hidden={!isOpen}
+        className={cn(
+          "absolute right-0 top-full z-50 mt-1.5 grid min-w-36 gap-1 rounded-2xl border border-slate-700/80 bg-[#020617] p-2 shadow-[0_18px_48px_rgba(0,0,0,0.58),0_0_0_1px_rgba(59,201,255,0.08)] transition duration-150",
+          isOpen
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none -translate-y-1 opacity-0",
+        )}
+        role="menu"
+      >
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            role="menuitem"
+            tabIndex={isOpen ? 0 : -1}
+            onClick={() => onOpenChange(false)}
+            className={cn(
+              "rounded-xl px-3 py-2 text-sm font-medium transition duration-200 hover:bg-slate-900/80 hover:text-slate-50 active:scale-[0.98]",
+              item.match.some(
+                (path) => pathname === path || pathname.startsWith(`${path}/`),
+              )
+                ? "bg-primary/10 text-sky-100"
+                : "text-slate-300",
+            )}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

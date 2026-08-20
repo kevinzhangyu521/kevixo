@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AnalyticsLink } from "@/components/analytics-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { blogArticles } from "@/lib/blog";
 import { getHomepageStats, supportedPokerSites, type HomepageStats } from "@/lib/homepage-stats";
@@ -102,6 +103,39 @@ const faqJsonLd = {
 
 const latestArticles = blogArticles.slice(0, 3);
 
+const learningTools = [
+  {
+    title: "Poker Hand Analyzer",
+    description: "Analyze a hand and understand the key decision behind the result.",
+    href: "/poker-hand-analyzer",
+  },
+  {
+    title: "AI Poker Coach",
+    description: "Use coaching-style feedback to build a repeatable study routine.",
+    href: "/ai-poker-coach",
+  },
+  {
+    title: "Poker Review Tool",
+    description: "Review uncertain spots and leave with one practical next step.",
+    href: "/poker-review-tool",
+  },
+  {
+    title: "Hand History Review",
+    description: "Study complete hand histories with clearer context and structure.",
+    href: "/hand-history-review",
+  },
+  {
+    title: "GTO Poker Coach",
+    description: "Connect range thinking and sizing logic to real hand decisions.",
+    href: "/gto-poker-coach",
+  },
+  {
+    title: "Poker Leak Finder",
+    description: "Find repeated mistakes and turn them into focused homework.",
+    href: "/poker-leak-finder",
+  },
+];
+
 export default async function LandingPage() {
   const stats = await getHomepageStats();
 
@@ -120,9 +154,47 @@ export default async function LandingPage() {
       <WhyPlayersChooseSection />
       <FaqSection />
       <KevixoProSection />
+      <LearningToolsSection />
       <BlogPreviewSection />
-      <Footer />
+      <SiteFooter />
     </main>
+  );
+}
+
+function LearningToolsSection() {
+  return (
+    <section className="mx-auto w-full max-w-6xl px-5 py-16 md:py-24">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+            Poker Learning Tools
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-50 md:text-5xl">
+            Choose the review path that fits the hand.
+          </h2>
+        </div>
+        <p className="max-w-sm text-sm leading-6 text-slate-400">
+          Explore Kevixo&apos;s hand review, coaching, leak detection, and study guides
+          without changing your current workflow.
+        </p>
+      </div>
+      <div className="mt-8 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {learningTools.map((tool) => (
+          <Link
+            key={tool.href}
+            href={tool.href}
+            className="group rounded-2xl border border-slate-800 bg-slate-950/42 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 hover:shadow-[0_0_34px_rgba(59,201,255,0.1)]"
+          >
+            <span className="text-sm font-semibold text-slate-100 transition group-hover:text-primary">
+              {tool.title}
+            </span>
+            <span className="mt-2 block text-sm leading-6 text-slate-500">
+              {tool.description}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -406,40 +478,6 @@ function BlogPreviewSection() {
         ))}
       </div>
     </section>
-  );
-}
-
-function Footer() {
-  const footerLinks = [
-    { label: "Blog", href: "/blog" },
-    { label: "About", href: "/about" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Review", href: "/review" },
-    { label: "Profile", href: "/profile" },
-    { label: "Progress", href: "/progress" },
-    { label: "Poker Hand Analyzer", href: "/poker-hand-analyzer" },
-    { label: "Privacy", href: "/privacy" },
-    { label: "Terms", href: "/terms" },
-    { label: "Contact", href: "mailto:support@kevixo.com" },
-  ];
-
-  return (
-    <footer className="border-t border-slate-900 px-5 py-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <p className="text-sm text-slate-500">Kevixo. Every Hand Makes You Better.</p>
-        <nav className="flex flex-wrap gap-4" aria-label="Footer navigation">
-          {footerLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="text-sm font-medium text-slate-500 transition hover:text-slate-200"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-    </footer>
   );
 }
 

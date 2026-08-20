@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -95,7 +96,7 @@ export default async function SeoLandingPage({ params }: SeoLandingPageProps) {
   }
 
   const pageUrl = getSeoLandingPageUrl(page.slug);
-  const relatedArticles = getRelatedArticles();
+  const relatedArticles = getRelatedArticles(page.slug);
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -312,6 +313,7 @@ export default async function SeoLandingPage({ params }: SeoLandingPageProps) {
           ))}
         </div>
       </section>
+      <SiteFooter />
     </main>
   );
 }

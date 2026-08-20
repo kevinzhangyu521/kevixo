@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { SiteFooter } from "@/components/site-footer";
 
 const siteUrl = "https://www.kevixo.com";
 const pageUrl = `${siteUrl}/pricing`;
@@ -30,5 +31,10 @@ export const metadata: Metadata = {
 };
 
 export default function PricingLayout({ children }: { children: ReactNode }) {
-  return children;
+  return (
+    <>
+      {children}
+      <SiteFooter />
+    </>
+  );
 }

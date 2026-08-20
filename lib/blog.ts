@@ -9,6 +9,12 @@ export type BlogArticle = {
   paragraphs: string[];
 };
 
+export type BlogProductLink = {
+  href: string;
+  title: string;
+  description: string;
+};
+
 export const blogArticles = [
   {
     slug: "how-to-review-poker-hands",
@@ -324,6 +330,78 @@ const relatedArticleSlugsBySlug: Record<string, string[]> = {
   ],
 };
 
+const relatedProductLinksBySlug: Record<string, BlogProductLink[]> = {
+  "how-to-review-poker-hands": [
+    {
+      href: "/poker-review-tool",
+      title: "Poker Review Tool",
+      description: "Review one difficult decision and turn it into a practical study note.",
+    },
+    {
+      href: "/hand-history-review",
+      title: "Hand History Review",
+      description: "Use complete hand details to make your review more accurate.",
+    },
+  ],
+  "poker-hand-history-guide": [
+    {
+      href: "/hand-history-review",
+      title: "Hand History Review",
+      description: "Turn a complete hand history into a structured coaching report.",
+    },
+    {
+      href: "/poker-hand-analyzer",
+      title: "Poker Hand Analyzer",
+      description: "Analyze positions, board texture, bet sizes, and key decisions.",
+    },
+  ],
+  "ai-poker-coach": [
+    {
+      href: "/ai-poker-coach",
+      title: "AI Poker Coach",
+      description: "Build a repeatable coaching routine around reviewed hands.",
+    },
+  ],
+  "poker-mistakes-beginners": [
+    {
+      href: "/poker-leak-finder",
+      title: "Poker Leak Finder",
+      description: "Identify repeated decision patterns and practice one leak at a time.",
+    },
+  ],
+  "gto-poker-strategy": [
+    {
+      href: "/gto-poker-coach",
+      title: "GTO Poker Coach",
+      description: "Connect range thinking and sizing logic to hands you actually review.",
+    },
+  ],
+  "poker-hand-analysis-framework": [
+    {
+      href: "/poker-hand-analyzer",
+      title: "Poker Hand Analyzer",
+      description: "Apply a structured analysis process to one complete hand.",
+    },
+    {
+      href: "/poker-review-tool",
+      title: "Poker Review Tool",
+      description: "Keep your review focused on the decision that matters most.",
+    },
+  ],
+  "poker-analyzer": [
+    {
+      href: "/poker-hand-analyzer",
+      title: "Poker Hand Analyzer",
+      description: "Use AI-assisted explanations to study key hand decisions.",
+    },
+    {
+      href: "/ai-poker-coach",
+      title: "AI Poker Coach",
+      description: "Turn analyzer feedback into a longer-term learning routine.",
+    },
+  ],
+};
+
 export const coreStudyArticleSlugs = [
   "how-to-review-poker-hands",
   "poker-hand-history-guide",
@@ -353,4 +431,8 @@ export function getRelatedBlogArticles(slug: string, limit = 3) {
   );
 
   return [...preferredArticles, ...fallbackArticles].slice(0, limit);
+}
+
+export function getRelatedProductLinks(slug: string) {
+  return relatedProductLinksBySlug[slug] ?? [];
 }

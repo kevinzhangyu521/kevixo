@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -416,6 +417,7 @@ export default function PokerHandAnalyzerPage() {
           </div>
         </Card>
       </section>
+      <SiteFooter />
     </main>
   );
 }
