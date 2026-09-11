@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ensureUserProfile } from "@/lib/profile-client";
+import { trackFunnelEvent } from "@/lib/analytics";
+import { saveGrowthEvent } from "@/lib/growth-client";
 import {
   getSupabaseClient,
   getSupabaseConfigurationError,
@@ -136,6 +138,9 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
           throw error;
         }
 
+        trackFunnelEvent("signup_succeeded");
+        void saveGrowthEvent("signup_succeeded");
+
         if (data.session) {
           setStatus("Account created. You are signed in and ready to continue.");
 
@@ -177,6 +182,9 @@ export function AuthPageForm({ mode }: AuthPageFormProps) {
         setStatus("Sign in completed, but the browser session was not saved. Please try again.");
         return;
       }
+
+      trackFunnelEvent("login_succeeded");
+      void saveGrowthEvent("login_succeeded");
 
       try {
         await ensureUserProfile();

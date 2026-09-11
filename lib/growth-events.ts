@@ -1,13 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import type { GrowthEventType } from "@/lib/funnel-events";
 
-export type GrowthEventType =
-  | "review_started"
-  | "review_completed"
-  | "share_clicked"
-  | "copy_link_clicked"
-  | "image_downloaded"
-  | "daily_challenge_attempted"
-  | "daily_challenge_completed";
+export type { GrowthEventType } from "@/lib/funnel-events";
 
 const growthEventsTable = "growth_events";
 const emailCapturesTable = "email_captures";

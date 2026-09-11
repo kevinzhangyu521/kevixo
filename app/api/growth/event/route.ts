@@ -1,16 +1,7 @@
 import { NextResponse } from "next/server";
 import { insertGrowthEvent, type GrowthEventType } from "@/lib/growth-events";
 import { getUserFromRequest } from "@/lib/supabase-auth";
-
-const allowedEvents: GrowthEventType[] = [
-  "review_started",
-  "review_completed",
-  "share_clicked",
-  "copy_link_clicked",
-  "image_downloaded",
-  "daily_challenge_attempted",
-  "daily_challenge_completed",
-];
+import { isGrowthEventType } from "@/lib/funnel-events";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -20,7 +11,7 @@ export async function POST(request: Request) {
     sourcePage?: string;
   };
 
-  if (!body.eventType || !allowedEvents.includes(body.eventType)) {
+  if (!body.eventType || !isGrowthEventType(body.eventType)) {
     return NextResponse.json({ ok: false, error: "Event is not supported." }, { status: 400 });
   }
 

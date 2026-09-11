@@ -1,4 +1,5 @@
 import { sendGAEvent } from "@next/third-parties/google";
+import type { GrowthEventType } from "@/lib/funnel-events";
 
 export const GA_MEASUREMENT_ID =
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4QJ105MCSE";
@@ -75,6 +76,10 @@ function trackEvent(eventName: string, params: AnalyticsParams = {}) {
   }
 
   sendGAEvent("event", eventName, params);
+}
+
+export function trackFunnelEvent(eventName: GrowthEventType) {
+  trackEvent(eventName);
 }
 
 export function trackAnalyze() {

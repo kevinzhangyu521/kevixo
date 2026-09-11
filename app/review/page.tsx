@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import {
   trackAnalyze,
   trackDemoSelected,
   trackFeedback,
+  trackFunnelEvent,
   trackReviewCompleted,
 } from "@/lib/analytics";
 import { demoHands } from "@/lib/demo-hands";
@@ -28,7 +29,7 @@ import {
   type UsefulPart,
 } from "@/lib/review-feedback";
 import { findStoredReview, saveStoredReview } from "@/lib/review-store";
-import { saveGrowthEvent, saveReviewEmail } from "@/lib/growth-client";
+import { getKevixoVisitorId, saveGrowthEvent, saveReviewEmail } from "@/lib/growth-client";
 import { getAuthHeaders } from "@/lib/auth-client";
 import { parseHandHistory } from "@/lib/hand-history/parser";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
@@ -63,6 +64,7 @@ type ReviewLookupResponse = {
 };
 
 export default function ReviewPage() {
+  const hasTrackedReviewView = useRef(false);
   const [handHistory, setHandHistory] = useState(demoHands[0].hand);
   const [selectedDemoId, setSelectedDemoId] = useState(demoHands[0].id);
   const [report, setReport] = useState<CoachingReport | null>(null);
@@ -149,6 +151,16 @@ export default function ReviewPage() {
   }, [loadStoredReviewFromServer]);
 
   useEffect(() => {
+    if (hasTrackedReviewView.current) {
+      return;
+    }
+
+    hasTrackedReviewView.current = true;
+    trackFunnelEvent("review_viewed");
+    void saveGrowthEvent("review_viewed");
+  }, []);
+
+  useEffect(() => {
     if (!isLoading) {
       return;
     }
@@ -209,6 +221,7 @@ export default function ReviewPage() {
     setIsGuestSignupNoticeDismissed(false);
     setReviewLookupMessage("");
     trackAnalyze();
+    trackFunnelEvent("review_started");
     void saveGrowthEvent("review_started");
 
     try {
@@ -216,7 +229,7 @@ export default function ReviewPage() {
         fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
-          body: JSON.stringify({ handHistory }),
+          body: JSON.stringify({ handHistory, visitorId: getKevixoVisitorId() }),
         }),
         wait(minimumLoadingMs),
       ]);
@@ -239,13 +252,17 @@ export default function ReviewPage() {
         report: payload.report,
       });
       trackReviewCompleted(payload.report);
+      trackFunnelEvent("analyze_succeeded");
       void saveGrowthEvent("review_completed", payload.report.reviewId);
+      void saveGrowthEvent("analyze_succeeded", payload.report.reviewId);
       const nextMemoryReviews = saveReviewToMemory(
         createPlayerMemory(window.localStorage),
         buildMemoryEntry(payload.report),
       );
       setMemoryReviews(nextMemoryReviews);
     } catch (caughtError) {
+      trackFunnelEvent("analyze_failed");
+      void saveGrowthEvent("analyze_failed");
       setError(
         caughtError instanceof Error
           ? caughtError.message

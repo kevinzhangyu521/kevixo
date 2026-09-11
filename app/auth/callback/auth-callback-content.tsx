@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getSupabaseClient, getSupabaseConfigurationError, isSupabaseConfigured } from "@/lib/supabase";
+import { trackFunnelEvent } from "@/lib/analytics";
+import { saveGrowthEvent } from "@/lib/growth-client";
 
 type CallbackState = "checking" | "success" | "error";
 
@@ -38,6 +40,9 @@ export function AuthCallbackContent() {
         if (error) {
           throw new Error(error.message);
         }
+
+        trackFunnelEvent("email_confirmed");
+        void saveGrowthEvent("email_confirmed");
 
         setState("success");
         setMessage("Your email is confirmed. Taking you to your Kevixo account...");
