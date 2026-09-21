@@ -45,6 +45,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.3,
     },
     {
+      url: "https://www.kevixo.com/refund-policy",
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
       url: "https://www.kevixo.com/blog",
       changeFrequency: "weekly",
       priority: 0.8,

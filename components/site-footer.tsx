@@ -55,6 +55,7 @@ const companyLinks = [
   { label: "About", href: "/about" },
   { label: "Privacy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
+  { label: "Refund Policy", href: "/refund-policy" },
   { label: "Contact", href: "mailto:support@kevixo.com" },
 ];
 
@@ -76,7 +77,7 @@ export function SiteFooter() {
         >
           <FooterLinkGroup title="Product" links={productLinks} showDescriptions />
           <FooterLinkGroup title="Learn" links={learnLinks} />
-          <FooterLinkGroup title="Company" links={companyLinks} />
+          <FooterLinkGroup title="Company & Legal" links={companyLinks} />
         </nav>
       </div>
     </footer>

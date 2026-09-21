@@ -34,9 +34,16 @@ export default function TermsPage() {
               for your own judgment during study or gameplay.
             </p>
             <p>
+              Kevixo is operated by Wuhan Yaxin Education Consulting Co., Ltd.
+            </p>
+            <p>
               Poker decisions depend on incomplete information, player tendencies,
               stack depth, and hand history quality. Kevixo works best when you provide
               complete and accurate hand details.
+            </p>
+            <p>
+              For purchases processed through Paddle, Paddle acts as the Merchant of Record
+              and handles the payment transaction.
             </p>
             <p>
               By using Kevixo, you agree to use the product responsibly and understand

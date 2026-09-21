@@ -22,6 +22,8 @@ const seoLandingPage = read("app/(seo)/[slug]/page.tsx");
 const sitemap = read("app/sitemap.ts");
 const robots = read("app/robots.ts");
 const header = read("components/site-header.tsx");
+const terms = read("app/terms/page.tsx");
+const refundPolicy = read("app/refund-policy/page.tsx");
 
 const commercialPages = [
   "/poker-hand-analyzer",
@@ -66,6 +68,16 @@ assertIncludes(sitemap, "https://www.kevixo.com/", "Sitemap canonical domain");
 assertIncludes(robots, 'allow: "/"', "Robots rules");
 assertIncludes(robots, "https://www.kevixo.com/sitemap.xml", "Robots sitemap");
 assert(!seoLandingPage.includes("noindex"), "SEO landing page template should not noindex pages.");
+assertIncludes(footer, 'label: "Refund Policy", href: "/refund-policy"', "Footer legal links");
+assertIncludes(sitemap, 'url: "https://www.kevixo.com/refund-policy"', "Sitemap legal entries");
+assertIncludes(
+  terms,
+  "Wuhan Yaxin Education Consulting Co., Ltd.",
+  "Terms legal business name",
+);
+assertIncludes(terms, "Paddle acts as the Merchant of Record", "Terms Paddle payment statement");
+assertIncludes(refundPolicy, "Refund Policy", "Refund policy page title");
+assertIncludes(refundPolicy, "Paddle is the Merchant of Record", "Refund policy Paddle statement");
 
 assertIncludes(header, "aria-hidden={!isOpen}", "Header More dropdown");
 assertIncludes(header, "pointer-events-none", "Header More dropdown");
