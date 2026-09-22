@@ -7,6 +7,20 @@ export type BlogArticle = {
   publishedAt: string;
   updatedAt: string;
   paragraphs: string[];
+  sections?: BlogArticleSection[];
+  cta?: BlogArticleCta;
+};
+
+export type BlogArticleSection = {
+  heading: string;
+  paragraphs?: string[];
+  items?: string[];
+};
+
+export type BlogArticleCta = {
+  title: string;
+  description: string;
+  label: string;
 };
 
 export type BlogProductLink = {
@@ -15,7 +29,7 @@ export type BlogProductLink = {
   description: string;
 };
 
-export const blogArticles = [
+export const blogArticles: BlogArticle[] = [
   {
     slug: "how-to-review-poker-hands",
     title: "How to Review Poker Hands: A Complete Guide for Beginners",
@@ -282,7 +296,100 @@ export const blogArticles = [
       "A poker analyzer is most valuable when it helps players build better study habits. The tool should make the hand easier to read, the mistake easier to understand, the better decision easier to remember, and the next study task easier to complete. Kevixo is built around that loop. Start with one hand, review one key decision, write one lesson, and carry that lesson into the next similar spot.",
     ],
   },
-] satisfies BlogArticle[];
+  {
+    slug: "top-pair-facing-turn-raise",
+    title: "Top Pair Facing a Turn Raise: Call, Fold, or Continue?",
+    description:
+      "Use ranges, board texture, sizing, stack depth, and a river plan to review a top-pair decision after a turn raise.",
+    category: "Hand Review",
+    readingTime: "8 min read",
+    publishedAt: "2026-09-23",
+    updatedAt: "2026-09-23",
+    paragraphs: [],
+    sections: [
+      {
+        heading: "Short answer: start with the raise, not your top pair",
+        paragraphs: [
+          "Top pair is not an automatic call when you face a turn raise. The useful question is whether the opponent's line contains enough bluffs, draws, and weaker value hands after you account for the board, position, stack depth, and raise size. Your hand may be strong enough to continue on some runouts, but that does not mean it can comfortably continue against every turn raise or river bet.",
+          "A good review separates two decisions. First, can top pair call the turn raise? Second, if you call, which river cards and river actions can you handle? If the turn call leaves you with no credible river plan, that is often a warning that the turn decision needs more caution.",
+        ],
+      },
+      {
+        heading: "Illustrative educational example",
+        paragraphs: [
+          "This is an illustrative educational example, not a real Kevixo user hand. It is designed to show how to organize the decision rather than to prescribe a universal answer.",
+        ],
+        items: [
+          "Six-max no-limit hold'em cash game, with both players about 100 big blinds deep.",
+          "Button opens with A♠ J♠ and the big blind calls. The button has position after the flop.",
+          "Flop: J♦ 7♠ 4♣. The big blind checks, the button makes a small continuation bet, and the big blind calls.",
+          "Turn: 9♠. The big blind checks, the button bets again, and the big blind responds with a substantial check-raise.",
+        ],
+      },
+      {
+        heading: "What changed on the turn",
+        paragraphs: [
+          "On the flop, ace-jack is top pair with a strong kicker on a relatively disconnected board. The turn is not neutral. The second spade gives Hero the nut-flush draw, but it also creates more draws for the big blind. Straight-draw combinations such as ten-eight and eight-six become more relevant, while suited hands gain additional ways to apply pressure. The turn also creates two-pair and set combinations that can plausibly arrive through a big-blind defend and a flop call.",
+          "That does not prove the check-raise is always strong value. It tells you to update the range. The board is now more dynamic, and the big blind's turn raise is a much more informative action than the earlier flop call.",
+        ],
+      },
+      {
+        heading: "Build the opponent range in two buckets",
+        paragraphs: [
+          "Start with value. In this example, plausible value can include sets, two pair such as jack-nine or nine-seven, and strong made hands that improved on the turn. The exact combinations depend on how this opponent defends the big blind and how they play the flop, so avoid acting as if one exact hand is known.",
+          "Then list the bluffs and semi-bluffs. Connected hands can pick up straight draws, and suited hands can pick up flush draws. Some opponents may also raise a pair plus draw or turn a marginal made hand into a bluff. The key question is not whether bluffs exist; it is whether enough of them take this exact line and size to support continuing with one pair.",
+        ],
+      },
+      {
+        heading: "Check the decision factors before you continue",
+        items: [
+          "Position: Hero is in position, which makes a call more practical because Hero sees the river action before committing another bet. Out of position, the same top pair often faces harder river decisions.",
+          "Stack depth: At roughly 100 big blinds, a turn call still leaves meaningful river play. With shallower stacks, a large raise can create a much more committed decision; with deeper stacks, the cost of a bad river plan grows.",
+          "Bet sizing: Compare the raise to the pot and to the remaining stack. A small raise can preserve many draws and thinner value hands. A large raise may be more polarized, but you still need a believable bluff composition before treating it as a call.",
+          "Blockers and improvements: A♠ J♠ blocks some flush draws while giving Hero a strong draw of its own. That improves the quality of a turn call, but it also means not every future spade is equally comfortable if the opponent's value range contains made flushes or strong two-pair hands.",
+          "Opponent tendencies: An aggressive player who raises draws and pressure hands is different from a player whose turn raises are almost exclusively value. Use observed tendencies when you have them; do not invent them when you do not.",
+        ],
+      },
+      {
+        heading: "Call, fold, or continue with a plan",
+        paragraphs: [
+          "Calling can be reasonable when the raise size leaves room to realize your position, the opponent can arrive with enough draws or bluffs, and your hand has useful improvement paths. Here, top pair plus the nut-flush draw gives Hero more to work with than a bare one-pair hand. The call is not a claim that Hero is ahead now; it is a decision to continue against a range that may still contain pressure hands Hero can outdraw or beat later.",
+          "Folding becomes more attractive when the opponent's value range is dense, their bluff candidates are scarce, or the raise size forces you toward calling off too much of the remaining stack on rivers. Folding top pair is not weak if the action and board leave very few worse hands or bluffs.",
+          "Re-raising is usually the action that needs the strongest reason. Ask which worse hands call and which better hands fold. If a re-raise mainly gets called by stronger value while folding out the opponent's bluffs, it may turn a manageable bluff-catcher into an expensive mistake.",
+        ],
+      },
+      {
+        heading: "Make the river plan before you call",
+        paragraphs: [
+          "Before calling the turn raise, name the rivers that help and the rivers that complicate the hand. A spade can complete Hero's flush, but it can also change which value hands remain possible. Straight-completing cards can strengthen parts of the big blind's range. A blank river may leave missed draws available, but only if those draws were genuinely in the range that raised turn.",
+          "On the river, revisit the opponent's size and line instead of automatically calling because you called turn. A checked river can give top pair a chance to show down. A small bet may keep more thin value and bluffs in range. A large river bet demands that you again compare value combinations with natural missed draws. The turn call earns a river decision; it does not remove one.",
+        ],
+      },
+      {
+        heading: "A reusable decision framework",
+        items: [
+          "Reconstruct the range from preflop through the turn; do not start with one pair in isolation.",
+          "Describe how the turn card changed value hands, draws, and board texture for both players.",
+          "Compare the raise size with the pot, effective stacks, and your position before deciding how much river pressure remains.",
+          "List plausible value hands and plausible bluffs or semi-bluffs. If the bluff list is thin, be cautious even with top pair.",
+          "Choose a turn action only after identifying the river cards and river sizes you can continue against.",
+        ],
+      },
+      {
+        heading: "What to remember next time",
+        paragraphs: [
+          "When top pair faces a turn raise, do not ask only whether your hand is strong. Ask what the raise represents, what it can bluff with, what changed on the board, and what you will do on the river. That checklist makes the decision clearer without pretending every spot has one exact answer. For a broader process, read the poker hand analysis framework and use a complete hand history when you review your own spot.",
+        ],
+      },
+    ],
+    cta: {
+      title: "Have a hand you are unsure about?",
+      description:
+        "Turn a hand you already played into a structured review with Kevixo while the decisions are still fresh.",
+      label: "Review Your Hand",
+    },
+  },
+];
 
 export function getBlogArticle(slug: string) {
   return blogArticles.find((article) => article.slug === slug) ?? null;
@@ -295,8 +402,13 @@ export function getBlogArticleUrl(slug: string) {
 const relatedArticleSlugsBySlug: Record<string, string[]> = {
   "how-to-review-poker-hands": [
     "poker-hand-analysis-framework",
-    "poker-analyzer",
+    "top-pair-facing-turn-raise",
     "poker-hand-history-guide",
+  ],
+  "top-pair-facing-turn-raise": [
+    "poker-hand-analysis-framework",
+    "how-to-review-poker-hands",
+    "poker-analyzer",
   ],
   "poker-hand-history-guide": [
     "poker-hand-analysis-framework",
@@ -398,6 +510,18 @@ const relatedProductLinksBySlug: Record<string, BlogProductLink[]> = {
       href: "/ai-poker-coach",
       title: "AI Poker Coach",
       description: "Turn analyzer feedback into a longer-term learning routine.",
+    },
+  ],
+  "top-pair-facing-turn-raise": [
+    {
+      href: "/poker-hand-analyzer",
+      title: "Poker Hand Analyzer",
+      description: "Review a complete hand with position, sizing, board texture, and range context.",
+    },
+    {
+      href: "/poker-review-tool",
+      title: "Poker Review Tool",
+      description: "Turn one difficult turn decision into a focused study note.",
     },
   ],
 };

@@ -17,6 +17,8 @@ function assertIncludes(source, expected, context) {
 const homepage = read("app/page.tsx");
 const footer = read("components/site-footer.tsx");
 const blogData = read("lib/blog.ts");
+const blogIndex = read("app/blog/page.tsx");
+const blogArticlePage = read("app/blog/[slug]/page.tsx");
 const seoLandingData = read("lib/seo-landing-pages.ts");
 const seoLandingPage = read("app/(seo)/[slug]/page.tsx");
 const sitemap = read("app/sitemap.ts");
@@ -78,6 +80,32 @@ assertIncludes(
 assertIncludes(terms, "Paddle acts as the Merchant of Record", "Terms Paddle payment statement");
 assertIncludes(refundPolicy, "Refund Policy", "Refund policy page title");
 assertIncludes(refundPolicy, "Paddle is the Merchant of Record", "Refund policy Paddle statement");
+
+assertIncludes(
+  blogData,
+  'slug: "top-pair-facing-turn-raise"',
+  "Hand review article data",
+);
+assertIncludes(
+  blogData,
+  "Top Pair Facing a Turn Raise: Call, Fold, or Continue?",
+  "Hand review article title",
+);
+assertIncludes(blogData, "Illustrative educational example", "Hand review article disclosure");
+assertIncludes(blogData, 'href: "/poker-hand-analyzer"', "Hand review product link");
+assertIncludes(
+  blogData,
+  '"top-pair-facing-turn-raise"',
+  "Hand review related article links",
+);
+assertIncludes(blogIndex, "blogArticles.map", "Blog index article discovery");
+assertIncludes(blogArticlePage, "article.sections", "Hand review article section rendering");
+assertIncludes(blogData, 'label: "Review Your Hand"', "Hand review CTA");
+assertIncludes(
+  sitemap,
+  "getBlogArticleUrl(article.slug)",
+  "Hand review sitemap inclusion",
+);
 
 assertIncludes(header, "aria-hidden={!isOpen}", "Header More dropdown");
 assertIncludes(header, "pointer-events-none", "Header More dropdown");

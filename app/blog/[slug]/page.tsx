@@ -13,6 +13,7 @@ import {
   getRelatedBlogArticles,
   getRelatedProductLinks,
 } from "@/lib/blog";
+import type { BlogArticleCta } from "@/lib/blog";
 
 type BlogArticlePageProps = {
   params: Promise<{
@@ -158,31 +159,57 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
         </div>
 
         <div className="mt-9 space-y-6 text-base leading-8 text-slate-300">
-          {article.paragraphs.slice(0, 5).map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
+          {article.sections ? (
+            article.sections.map((section) => (
+              <section key={section.heading} className="space-y-4">
+                <h2 className="text-2xl font-semibold tracking-tight text-slate-100 md:text-3xl">
+                  {section.heading}
+                </h2>
+                {section.paragraphs?.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                {section.items ? (
+                  <ul className="list-disc space-y-3 pl-5 marker:text-primary">
+                    {section.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            ))
+          ) : (
+            <>
+              {article.paragraphs.slice(0, 5).map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
 
-          <ArticleCta />
+              <ArticleCta />
 
-          {article.paragraphs.slice(5).map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
+              {article.paragraphs.slice(5).map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </>
+          )}
 
           <CoreStudyPath articles={coreStudyArticles} />
           <RelatedKevixoTools links={relatedProductLinks} />
           <RelatedArticles articles={relatedArticles} />
         </div>
 
-        <Card className="mt-10 border-primary/20 bg-slate-950/58 p-5 md:p-6">
-          <CardTitle>Try Kevixo AI Hand Review</CardTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-400">
-            Paste a hand or start with a demo and get a practical coaching report in under
-            a minute.
-          </p>
-          <Button asChild className="mt-5">
-            <Link href="/review">Try Kevixo AI Hand Review</Link>
-          </Button>
-        </Card>
+        {article.sections ? (
+          <div className="mt-10">
+            <ArticleCta cta={article.cta} />
+          </div>
+        ) : (
+          <Card className="mt-10 border-primary/20 bg-slate-950/58 p-5 md:p-6">
+            <CardTitle>Try Kevixo AI Hand Review</CardTitle>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Paste a hand or start with a demo and get a practical coaching report in under
+              a minute.
+            </p>
+            <Button asChild className="mt-5">
+              <Link href="/review">Try Kevixo AI Hand Review</Link>
+            </Button>
+          </Card>
+        )}
       </article>
       <SiteFooter />
     </main>
@@ -295,16 +322,20 @@ function RelatedKevixoTools({ links }: { links: BlogProductLinkSummary[] }) {
   );
 }
 
-function ArticleCta() {
+function ArticleCta({ cta }: { cta?: BlogArticleCta }) {
+  const content = cta ?? {
+    title: "Review one hand while the lesson is fresh",
+    description:
+      "Kevixo turns a complete hand history into a coaching report with a key lesson, better decision, leak, and five-minute homework.",
+    label: "Try Kevixo AI Hand Review",
+  };
+
   return (
     <Card className="border-primary/20 bg-slate-950/58 p-5 md:p-6">
-      <CardTitle>Review one hand while the lesson is fresh</CardTitle>
-      <p className="mt-3 text-sm leading-6 text-slate-400">
-        Kevixo turns a complete hand history into a coaching report with a key lesson,
-        better decision, leak, and five-minute homework.
-      </p>
+      <CardTitle>{content.title}</CardTitle>
+      <p className="mt-3 text-sm leading-6 text-slate-400">{content.description}</p>
       <Button asChild className="mt-5">
-        <Link href="/review">Try Kevixo AI Hand Review</Link>
+        <Link href="/review">{content.label}</Link>
       </Button>
     </Card>
   );
