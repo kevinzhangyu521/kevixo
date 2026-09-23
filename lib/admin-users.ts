@@ -18,6 +18,7 @@ export type AdminUser = {
   subscriptionStatus?: string;
   paddleCustomerId?: string;
   paddleSubscriptionId?: string;
+  renewalAt?: string;
 };
 
 type ProfileRow = {
@@ -37,11 +38,12 @@ type ReviewCountRow = {
   user_id: string | null;
 };
 
-type PaddleSubscriptionRow = {
+export type PaddleSubscriptionRow = {
   user_id: string;
   status: string;
   paddle_customer_id: string | null;
   paddle_subscription_id: string | null;
+  next_billed_at: string | null;
 };
 
 type AdminAuthorizationResult =
@@ -138,7 +140,7 @@ export async function updateAdminUser({
 async function listPaddleSubscriptions() {
   const { data, error } = await getAdminUsersClient()
     .from("subscriptions")
-    .select("user_id, status, paddle_customer_id, paddle_subscription_id")
+    .select("user_id, status, paddle_customer_id, paddle_subscription_id, next_billed_at")
     .eq("provider", "paddle")
     .order("updated_at", { ascending: false })
     .returns<PaddleSubscriptionRow[]>();
@@ -147,7 +149,19 @@ async function listPaddleSubscriptions() {
     return new Map<string, PaddleSubscriptionRow>();
   }
 
-  return new Map(data.map((subscription) => [subscription.user_id, subscription]));
+  return selectLatestPaddleSubscriptions(data);
+}
+
+export function selectLatestPaddleSubscriptions(subscriptions: PaddleSubscriptionRow[]) {
+  const latestSubscriptions = new Map<string, PaddleSubscriptionRow>();
+
+  for (const subscription of subscriptions) {
+    if (!latestSubscriptions.has(subscription.user_id)) {
+      latestSubscriptions.set(subscription.user_id, subscription);
+    }
+  }
+
+  return latestSubscriptions;
 }
 
 async function listReviewCounts() {
@@ -190,6 +204,7 @@ function fromProfileRow(
     subscriptionStatus: subscription?.status,
     paddleCustomerId: subscription?.paddle_customer_id ?? undefined,
     paddleSubscriptionId: subscription?.paddle_subscription_id ?? undefined,
+    renewalAt: subscription?.next_billed_at ?? undefined,
   };
 }
 

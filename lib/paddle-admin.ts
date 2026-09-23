@@ -1,9 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import {
   createCheckoutBinding,
+  getPaddleFunnelEventType,
+  getVerifiedPaddleSubscription,
   isPaddleEventNewer,
   verifyCheckoutBinding,
   verifyPaddleSignature,
+  type PaddleWebhookEvent,
 } from "@/lib/paddle-billing";
 import { insertGrowthEvent } from "@/lib/growth-events";
 
@@ -11,12 +14,7 @@ const subscriptionsTable = "subscriptions";
 const webhookEventsTable = "paddle_webhook_events";
 const paddleApiUrl = "https://api.paddle.com";
 
-type PaddleEvent = {
-  event_id: string;
-  event_type: string;
-  occurred_at: string;
-  data: Record<string, unknown>;
-};
+type PaddleEvent = PaddleWebhookEvent;
 
 type PaddleSubscriptionRow = {
   user_id: string;
@@ -113,15 +111,13 @@ export async function processPaddleWebhook(event: PaddleEvent) {
 }
 
 async function upsertPaddleSubscription(event: PaddleEvent) {
-  const data = event.data;
-  const subscriptionId = readString(data.id);
-  const customerId = readString(data.customer_id);
-  const status = readString(data.status) ?? "expired";
-  const customData = readRecord(data.custom_data);
-  const userId = readString(customData?.kevixo_user_id);
-  const binding = readString(customData?.kevixo_checkout_binding);
+  const subscription = getVerifiedPaddleSubscription(
+    event,
+    readRequiredEnv("PADDLE_API_KEY"),
+    readRequiredEnv("NEXT_PUBLIC_PADDLE_COACH_MONTHLY_PRICE_ID"),
+  );
 
-  if (!subscriptionId || !customerId || !userId || !verifyCheckoutBinding(binding, userId, readRequiredEnv("PADDLE_API_KEY"))) {
+  if (!subscription) {
     throw new Error("Paddle subscription is missing a valid Kevixo account binding.");
   }
 
@@ -129,7 +125,7 @@ async function upsertPaddleSubscription(event: PaddleEvent) {
   const { data: existing, error: existingError } = await supabase
     .from(subscriptionsTable)
     .select("last_event_occurred_at")
-    .eq("paddle_subscription_id", subscriptionId)
+    .eq("paddle_subscription_id", subscription.subscriptionId)
     .maybeSingle<{ last_event_occurred_at: string | null }>();
 
   if (existingError) {
@@ -142,16 +138,16 @@ async function upsertPaddleSubscription(event: PaddleEvent) {
 
   const { error } = await supabase.from(subscriptionsTable).upsert(
     {
-      user_id: userId,
+      user_id: subscription.userId,
       provider: "paddle",
       plan: "coach",
-      status,
-      paddle_customer_id: customerId,
-      paddle_subscription_id: subscriptionId,
-      paddle_transaction_id: readString(data.transaction_id),
-      current_period_end: readString(data.next_billed_at),
-      next_billed_at: readString(data.next_billed_at),
-      scheduled_change: readRecord(data.scheduled_change),
+      status: subscription.status,
+      paddle_customer_id: subscription.customerId,
+      paddle_subscription_id: subscription.subscriptionId,
+      paddle_transaction_id: subscription.transactionId,
+      current_period_end: subscription.nextBilledAt,
+      next_billed_at: subscription.nextBilledAt,
+      scheduled_change: subscription.scheduledChange,
       last_event_occurred_at: event.occurred_at,
       updated_at: new Date().toISOString(),
     },
@@ -210,13 +206,18 @@ async function updateAdjustmentState(event: PaddleEvent) {
 
 async function trackPaddleLifecycleEvent(event: PaddleEvent) {
   const customData = readRecord(event.data.custom_data);
-  const userId = readString(customData?.kevixo_user_id) ?? (await findUserId(event.data));
+  const customUserId = readString(customData?.kevixo_user_id);
+  const customBinding = readString(customData?.kevixo_checkout_binding);
+  const userId =
+    customUserId && verifyCheckoutBinding(customBinding, customUserId, readRequiredEnv("PADDLE_API_KEY"))
+      ? customUserId
+      : await findUserId(event.data);
 
   if (!userId) {
     return;
   }
 
-  const eventType = toGrowthEventType(event.event_type);
+  const eventType = getPaddleFunnelEventType(event.event_type);
 
   if (!eventType) {
     return;
@@ -247,20 +248,6 @@ async function findUserId(data: Record<string, unknown>) {
   }
 
   return subscription?.user_id;
-}
-
-function toGrowthEventType(eventType: string) {
-  if (eventType === "subscription.activated" || eventType === "subscription.trialing") {
-    return "subscription_activated" as const;
-  }
-
-  if (eventType === "transaction.payment_failed" || eventType === "subscription.past_due") {
-    return "payment_failed" as const;
-  }
-
-  if (eventType === "subscription.canceled") {
-    return "subscription_canceled" as const;
-  }
 }
 
 async function getLatestPaddleSubscription(userId: string) {

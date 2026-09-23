@@ -189,9 +189,10 @@ export default function AdminUsersPage() {
                       <th className="px-5 py-4 font-semibold">Joined</th>
                       <th className="px-5 py-4 font-semibold">Plan</th>
                       <th className="px-5 py-4 font-semibold">Subscription</th>
+                      <th className="px-5 py-4 font-semibold">Renewal</th>
                       <th className="px-5 py-4 font-semibold">Status</th>
-                      <th className="px-5 py-4 font-semibold">Role</th>
                       <th className="px-5 py-4 font-semibold">Paddle</th>
+                      <th className="px-5 py-4 font-semibold">Role</th>
                       <th className="px-5 py-4 text-right font-semibold">Review Count</th>
                     </tr>
                   </thead>
@@ -254,6 +255,9 @@ function UserRow({
         <span className="inline-flex rounded-full border border-slate-800 bg-slate-950/70 px-3 py-1 font-medium text-slate-200">
           {formatSubscriptionStatus(user.subscriptionStatus)}
         </span>
+      </td>
+      <td className="px-5 py-4 text-slate-400">
+        {user.renewalAt ? formatDate(user.renewalAt) : "Not scheduled"}
       </td>
       <td className="px-5 py-4">
         <SelectControl

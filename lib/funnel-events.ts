@@ -16,6 +16,7 @@ export const growthEventTypes = [
   "daily_challenge_completed",
   "checkout_started",
   "checkout_completed",
+  "payment_succeeded",
   "subscription_activated",
   "payment_failed",
   "subscription_canceled",
