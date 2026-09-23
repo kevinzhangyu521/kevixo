@@ -3,7 +3,6 @@ import {
   authorizeAdminUser,
   listAdminUsers,
   updateAdminUser,
-  type AdminUserPlan,
   type AdminUserRole,
   type AdminUserStatus,
 } from "@/lib/admin-users";
@@ -40,17 +39,12 @@ export async function PATCH(request: Request) {
   try {
     const payload = (await request.json()) as {
       userId?: string;
-      plan?: AdminUserPlan;
       role?: AdminUserRole;
       status?: AdminUserStatus;
     };
 
     if (!payload.userId) {
       return NextResponse.json({ ok: false, error: "Choose a user to update." }, { status: 400 });
-    }
-
-    if (payload.plan && !isPlan(payload.plan)) {
-      return NextResponse.json({ ok: false, error: "Choose a valid plan." }, { status: 400 });
     }
 
     if (payload.status && !isStatus(payload.status)) {
@@ -63,7 +57,6 @@ export async function PATCH(request: Request) {
 
     const user = await updateAdminUser({
       userId: payload.userId,
-      plan: payload.plan,
       role: payload.role,
       status: payload.status,
     });
@@ -72,10 +65,6 @@ export async function PATCH(request: Request) {
   } catch (error) {
     return serverError(error);
   }
-}
-
-function isPlan(value: string): value is AdminUserPlan {
-  return value === "free" || value === "pro";
 }
 
 function isStatus(value: string): value is AdminUserStatus {

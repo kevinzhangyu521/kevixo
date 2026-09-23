@@ -14,6 +14,11 @@ export const growthEventTypes = [
   "image_downloaded",
   "daily_challenge_attempted",
   "daily_challenge_completed",
+  "checkout_started",
+  "checkout_completed",
+  "subscription_activated",
+  "payment_failed",
+  "subscription_canceled",
 ] as const;
 
 export type GrowthEventType = (typeof growthEventTypes)[number];

@@ -15,11 +15,12 @@ export default function CoachWelcomePage() {
             Welcome to Kevixo Coach.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-300 md:text-lg">
-            Your subscription is now active. Your personal coaching journey starts today.
+            Your payment is being securely confirmed. Your Coach status will appear in your account
+            as soon as Paddle confirms the subscription.
           </p>
           <div className="mt-8">
             <Button asChild>
-              <Link href="/review">Continue Learning</Link>
+              <Link href="/account">View Account</Link>
             </Button>
           </div>
         </Card>

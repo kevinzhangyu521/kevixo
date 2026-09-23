@@ -215,8 +215,7 @@ function getFriendlyBillingStatus(error: unknown) {
   const normalizedMessage = message.toLowerCase();
 
   if (
-    normalizedMessage.includes("stripe") ||
-    normalizedMessage.includes("secret_key") ||
+    normalizedMessage.includes("paddle") ||
     normalizedMessage.includes("not configured")
   ) {
     return "Billing is not available yet. Please try again later.";

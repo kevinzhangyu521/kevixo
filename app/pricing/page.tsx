@@ -6,6 +6,32 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders, getCurrentAccessToken } from "@/lib/auth-client";
+import { saveGrowthEvent } from "@/lib/growth-client";
+
+type PaddleCheckoutConfiguration = {
+  clientToken: string;
+  environment: "production";
+  priceId: string;
+  customerEmail: string;
+  customData: Record<string, string>;
+};
+
+declare global {
+  interface Window {
+    Paddle?: {
+      Environment: { set: (environment: "production") => void };
+      Initialize: (options: { token: string }) => void;
+      Checkout: {
+        open: (options: {
+          items: Array<{ priceId: string; quantity: number }>;
+          customer: { email: string };
+          customData: Record<string, string>;
+          eventCallback: (event: { name?: string }) => void;
+        }) => void;
+      };
+    };
+  }
+}
 
 const freeFeatures = [
   "Hand Review",
@@ -43,13 +69,45 @@ export default function PricingPage() {
           ...(await getAuthHeaders()),
         },
       });
-      const payload = (await response.json()) as { ok: boolean; url?: string; error?: string };
+      const payload = (await response.json()) as {
+        ok: boolean;
+        alreadySubscribed?: boolean;
+        checkout?: PaddleCheckoutConfiguration;
+        error?: string;
+      };
 
-      if (!response.ok || !payload.ok || !payload.url) {
+      if (!response.ok || !payload.ok) {
         throw new Error(payload.error ?? "Checkout could not be started.");
       }
 
-      window.location.href = payload.url;
+      if (payload.alreadySubscribed) {
+        setStatus("Your Coach subscription is already active.");
+        return;
+      }
+
+      if (!payload.checkout) {
+        throw new Error("Checkout could not be prepared.");
+      }
+
+      const paddle = await loadPaddle();
+      paddle.Environment.set(payload.checkout.environment);
+      paddle.Initialize({ token: payload.checkout.clientToken });
+      paddle.Checkout.open({
+        items: [{ priceId: payload.checkout.priceId, quantity: 1 }],
+        customer: { email: payload.checkout.customerEmail },
+        customData: payload.checkout.customData,
+        eventCallback: (event) => {
+          if (event.name === "checkout.completed") {
+            void saveGrowthEvent("checkout_completed");
+            setStatus("Payment received. Your Coach status will update after secure confirmation.");
+          }
+
+          if (event.name === "checkout.closed") {
+            setStatus("Checkout closed. Your Free plan is unchanged.");
+          }
+        },
+      });
+      void saveGrowthEvent("checkout_started");
     } catch (error) {
       setStatus(getFriendlyCheckoutStatus(error));
       setIsLoading(false);
@@ -110,14 +168,28 @@ function getFriendlyCheckoutStatus(error: unknown) {
   const normalizedMessage = message.toLowerCase();
 
   if (
-    normalizedMessage.includes("stripe") ||
-    normalizedMessage.includes("secret_key") ||
+    normalizedMessage.includes("paddle") ||
     normalizedMessage.includes("not configured")
   ) {
     return "Checkout is not available yet. Please try again later.";
   }
 
   return message || "Checkout could not be started.";
+}
+
+function loadPaddle() {
+  if (window.Paddle) {
+    return Promise.resolve(window.Paddle);
+  }
+
+  return new Promise<NonNullable<Window["Paddle"]>>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+    script.async = true;
+    script.onload = () => (window.Paddle ? resolve(window.Paddle) : reject(new Error("Checkout could not load.")));
+    script.onerror = () => reject(new Error("Checkout could not load."));
+    document.head.appendChild(script);
+  });
 }
 
 function PricingCard({

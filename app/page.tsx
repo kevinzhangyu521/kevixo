@@ -82,9 +82,9 @@ const faqs = [
       "Reviews are private by default in your browser. If you choose to share a review, Kevixo creates a public summary page that does not show personal feedback data.",
   },
   {
-    question: "What is Kevixo Pro?",
+    question: "What is Kevixo Coach?",
     answer:
-      "Kevixo Pro is planned as a paid version for players who want cloud history, deeper trends, and more advanced coaching reports. Payments are not open yet.",
+      "Kevixo Coach is the paid plan for players who want deeper history, sharper trends, and more advanced coaching reports.",
   },
 ];
 
@@ -412,18 +412,18 @@ function KevixoProSection() {
       <Card className="border-primary/25 bg-primary/5 p-6 md:p-8">
         <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div>
-            <CardTitle>Coming Soon: Kevixo Pro</CardTitle>
+              <CardTitle>Kevixo Coach</CardTitle>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-50 md:text-5xl">
               For players who want their study to compound.
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-300">
-              Pro is planned for players who want deeper history, sharper trends, and more
-              personal coaching over time. Payments are not open yet.
+              Coach is for players who want deeper history, sharper trends, and more personal
+              coaching over time.
             </p>
             <div className="mt-6">
               <Button asChild>
-                <Link href="mailto:support@kevixo.com?subject=Kevixo%20Pro%20Waitlist">
-                  Join Waitlist
+                <Link href="/pricing">
+                  View Coach
                 </Link>
               </Button>
             </div>

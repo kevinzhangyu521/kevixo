@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getUserFromRequest } from "@/lib/supabase-auth";
 
 export type AdminUserRole = "user" | "admin";
-export type AdminUserPlan = "free" | "pro";
+export type AdminUserPlan = "free" | "coach";
 export type AdminUserStatus = "active" | "disabled";
 
 export type AdminUser = {
@@ -15,6 +15,9 @@ export type AdminUser = {
   status: AdminUserStatus;
   role: AdminUserRole;
   reviewCount: number;
+  subscriptionStatus?: string;
+  paddleCustomerId?: string;
+  paddleSubscriptionId?: string;
 };
 
 type ProfileRow = {
@@ -32,6 +35,13 @@ type ProfileRow = {
 
 type ReviewCountRow = {
   user_id: string | null;
+};
+
+type PaddleSubscriptionRow = {
+  user_id: string;
+  status: string;
+  paddle_customer_id: string | null;
+  paddle_subscription_id: string | null;
 };
 
 type AdminAuthorizationResult =
@@ -78,29 +88,23 @@ export async function listAdminUsers() {
     throw new Error(error.message);
   }
 
-  const reviewCounts = await listReviewCounts();
+  const [reviewCounts, subscriptions] = await Promise.all([listReviewCounts(), listPaddleSubscriptions()]);
 
-  return data.map((row) => fromProfileRow(row, reviewCounts.get(row.user_id) ?? 0));
+  return data.map((row) => fromProfileRow(row, reviewCounts.get(row.user_id) ?? 0, subscriptions.get(row.user_id)));
 }
 
 export async function updateAdminUser({
-  plan,
   role,
   status,
   userId,
 }: {
   userId: string;
-  plan?: AdminUserPlan;
   role?: AdminUserRole;
   status?: AdminUserStatus;
 }) {
   const updatePayload: Partial<Pick<ProfileRow, "plan" | "role" | "status" | "updated_at">> = {
     updated_at: new Date().toISOString(),
   };
-
-  if (plan) {
-    updatePayload.plan = plan;
-  }
 
   if (role) {
     updatePayload.role = role;
@@ -126,9 +130,24 @@ export async function updateAdminUser({
     throw new Error(error.message);
   }
 
-  const reviewCounts = await listReviewCounts();
+  const [reviewCounts, subscriptions] = await Promise.all([listReviewCounts(), listPaddleSubscriptions()]);
 
-  return fromProfileRow(data, reviewCounts.get(data.user_id) ?? 0);
+  return fromProfileRow(data, reviewCounts.get(data.user_id) ?? 0, subscriptions.get(data.user_id));
+}
+
+async function listPaddleSubscriptions() {
+  const { data, error } = await getAdminUsersClient()
+    .from("subscriptions")
+    .select("user_id, status, paddle_customer_id, paddle_subscription_id")
+    .eq("provider", "paddle")
+    .order("updated_at", { ascending: false })
+    .returns<PaddleSubscriptionRow[]>();
+
+  if (error) {
+    return new Map<string, PaddleSubscriptionRow>();
+  }
+
+  return new Map(data.map((subscription) => [subscription.user_id, subscription]));
 }
 
 async function listReviewCounts() {
@@ -153,17 +172,24 @@ async function listReviewCounts() {
   return counts;
 }
 
-function fromProfileRow(row: ProfileRow, reviewCount: number): AdminUser {
+function fromProfileRow(
+  row: ProfileRow,
+  reviewCount: number,
+  subscription?: PaddleSubscriptionRow,
+): AdminUser {
   return {
     id: row.id,
     email: row.email,
     displayName: row.display_name ?? undefined,
     avatarUrl: row.avatar_url ?? undefined,
     joinedAt: row.created_at,
-    plan: row.plan ?? "free",
+    plan: subscription && ["active", "trialing"].includes(subscription.status) ? "coach" : "free",
     status: row.status ?? "active",
     role: row.role ?? "user",
     reviewCount,
+    subscriptionStatus: subscription?.status,
+    paddleCustomerId: subscription?.paddle_customer_id ?? undefined,
+    paddleSubscriptionId: subscription?.paddle_subscription_id ?? undefined,
   };
 }
 

@@ -51,6 +51,7 @@ export default function AccountPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isBillingLoading, setIsBillingLoading] = useState(false);
 
   const loadAccount = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -181,6 +182,27 @@ export default function AccountPage() {
     router.refresh();
   }
 
+  async function handleManageSubscription() {
+    setIsBillingLoading(true);
+
+    try {
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+        headers: await getAuthHeaders(),
+      });
+      const payload = (await response.json()) as { ok: boolean; url?: string; error?: string };
+
+      if (!response.ok || !payload.ok || !payload.url) {
+        throw new Error(payload.error ?? "Subscription management could not be opened.");
+      }
+
+      window.location.href = payload.url;
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Subscription management could not be opened.");
+      setIsBillingLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader ctaLabel="Analyze Free" ctaHref="/review" />
@@ -195,7 +217,7 @@ export default function AccountPage() {
               Your Kevixo account
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
-              Keep your coaching history, profile, and future subscription in one place.
+              Keep your coaching history, profile, and subscription in one place.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -313,13 +335,19 @@ export default function AccountPage() {
                 />
               </div>
               <p className="mt-4 text-sm leading-6 text-slate-400">
-                Subscription management is prepared for Kevixo Coach. You can continue using the
-                free product while billing is configured.
+                Coach billing is managed securely through Paddle. Your subscription status updates
+                after Paddle confirms each change.
               </p>
               <div className="mt-5">
-                <Button asChild>
-                  <Link href="/pricing">View Pricing</Link>
-                </Button>
+                {subscription?.paddleCustomerId ? (
+                  <Button onClick={handleManageSubscription} disabled={isBillingLoading}>
+                    {isBillingLoading ? "Opening..." : "Manage Subscription"}
+                  </Button>
+                ) : (
+                  <Button asChild>
+                    <Link href="/pricing">View Pricing</Link>
+                  </Button>
+                )}
               </div>
             </Card>
           </div>

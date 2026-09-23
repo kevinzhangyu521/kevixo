@@ -8,7 +8,6 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders } from "@/lib/auth-client";
 import type {
   AdminUser,
-  AdminUserPlan,
   AdminUserRole,
   AdminUserStatus,
 } from "@/lib/admin-users";
@@ -19,11 +18,6 @@ type UsersPayload = {
   user?: AdminUser;
   error?: string;
 };
-
-const planOptions: Array<{ label: string; value: AdminUserPlan }> = [
-  { label: "Free", value: "free" },
-  { label: "Pro", value: "pro" },
-];
 
 const statusOptions: Array<{ label: string; value: AdminUserStatus }> = [
   { label: "Active", value: "active" },
@@ -92,7 +86,7 @@ export default function AdminUsersPage() {
 
   async function updateUser(
     userId: string,
-    update: Partial<Pick<AdminUser, "plan" | "role" | "status">>,
+    update: Partial<Pick<AdminUser, "role" | "status">>,
   ) {
     setSavingUserId(userId);
     setMessage("Saving user...");
@@ -194,8 +188,10 @@ export default function AdminUsersPage() {
                       <th className="px-5 py-4 font-semibold">User</th>
                       <th className="px-5 py-4 font-semibold">Joined</th>
                       <th className="px-5 py-4 font-semibold">Plan</th>
+                      <th className="px-5 py-4 font-semibold">Subscription</th>
                       <th className="px-5 py-4 font-semibold">Status</th>
                       <th className="px-5 py-4 font-semibold">Role</th>
+                      <th className="px-5 py-4 font-semibold">Paddle</th>
                       <th className="px-5 py-4 text-right font-semibold">Review Count</th>
                     </tr>
                   </thead>
@@ -231,7 +227,7 @@ function UserRow({
   isSaving: boolean;
   onUpdate: (
     userId: string,
-    update: Partial<Pick<AdminUser, "plan" | "role" | "status">>,
+    update: Partial<Pick<AdminUser, "role" | "status">>,
   ) => void;
   user: AdminUser;
 }) {
@@ -250,13 +246,14 @@ function UserRow({
       </td>
       <td className="px-5 py-4 text-slate-400">{formatDate(user.joinedAt)}</td>
       <td className="px-5 py-4">
-        <SelectControl
-          label="Plan"
-          disabled={isSaving}
-          value={user.plan}
-          options={planOptions}
-          onChange={(plan) => onUpdate(user.id, { plan })}
-        />
+        <span className="inline-flex rounded-full border border-slate-800 bg-slate-950/70 px-3 py-1 font-medium text-slate-200">
+          {user.plan === "coach" ? "Coach" : "Free"}
+        </span>
+      </td>
+      <td className="px-5 py-4">
+        <span className="inline-flex rounded-full border border-slate-800 bg-slate-950/70 px-3 py-1 font-medium text-slate-200">
+          {formatSubscriptionStatus(user.subscriptionStatus)}
+        </span>
       </td>
       <td className="px-5 py-4">
         <SelectControl
@@ -266,6 +263,16 @@ function UserRow({
           options={statusOptions}
           onChange={(status) => onUpdate(user.id, { status })}
         />
+      </td>
+      <td className="px-5 py-4 text-xs leading-5 text-slate-500">
+        {user.paddleCustomerId || user.paddleSubscriptionId ? (
+          <>
+            <p>{user.paddleCustomerId ?? "No customer"}</p>
+            <p>{user.paddleSubscriptionId ?? "No subscription"}</p>
+          </>
+        ) : (
+          "No Paddle billing"
+        )}
       </td>
       <td className="px-5 py-4">
         <SelectControl
@@ -284,6 +291,14 @@ function UserRow({
       </td>
     </tr>
   );
+}
+
+function formatSubscriptionStatus(value?: string) {
+  if (!value) {
+    return "No subscription";
+  }
+
+  return value.split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }
 
 function Avatar({ user }: { user: AdminUser }) {

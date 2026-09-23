@@ -5,9 +5,10 @@ export type Subscription = {
   userId: string;
   plan: "free" | "coach";
   status: string;
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
+  paddleCustomerId?: string;
+  paddleSubscriptionId?: string;
   currentPeriodEnd?: string;
+  nextBilledAt?: string;
 };
 
 type SubscriptionRow = {
@@ -15,9 +16,10 @@ type SubscriptionRow = {
   user_id: string;
   plan: string;
   status: string;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
+  paddle_customer_id: string | null;
+  paddle_subscription_id: string | null;
   current_period_end: string | null;
+  next_billed_at: string | null;
 };
 
 const tableName = "subscriptions";
@@ -26,8 +28,9 @@ export async function getSubscription(userId: string): Promise<Subscription> {
   const supabase = getSubscriptionAdminClient();
   const { data, error } = await supabase
     .from(tableName)
-    .select("id, user_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_end")
+    .select("id, user_id, plan, status, paddle_customer_id, paddle_subscription_id, current_period_end, next_billed_at")
     .eq("user_id", userId)
+    .eq("provider", "paddle")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle<SubscriptionRow>();
@@ -83,9 +86,10 @@ function fromRow(row: SubscriptionRow): Subscription {
     userId: row.user_id,
     plan: row.plan === "coach" ? "coach" : "free",
     status: row.status,
-    stripeCustomerId: row.stripe_customer_id ?? undefined,
-    stripeSubscriptionId: row.stripe_subscription_id ?? undefined,
+    paddleCustomerId: row.paddle_customer_id ?? undefined,
+    paddleSubscriptionId: row.paddle_subscription_id ?? undefined,
     currentPeriodEnd: row.current_period_end ?? undefined,
+    nextBilledAt: row.next_billed_at ?? undefined,
   };
 }
 

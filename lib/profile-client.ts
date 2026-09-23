@@ -12,7 +12,7 @@ export type UserProfile = {
   displayName?: string;
   avatarUrl?: string;
   role?: "user" | "admin";
-  plan?: "free" | "pro";
+  plan?: "free" | "coach";
   status?: "active" | "disabled";
   createdAt: string;
   updatedAt: string;
@@ -24,7 +24,7 @@ type ProfileRow = {
   display_name: string | null;
   avatar_url: string | null;
   role?: "user" | "admin" | null;
-  plan?: "free" | "pro" | null;
+  plan?: "free" | "coach" | null;
   status?: "active" | "disabled" | null;
   created_at: string;
   updated_at: string;

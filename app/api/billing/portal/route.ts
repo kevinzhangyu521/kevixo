@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getStripe } from "@/lib/stripe-admin";
-import { getSiteUrl, getUserFromRequest } from "@/lib/supabase-auth";
-import { getSubscription } from "@/lib/subscription";
+import { createPaddlePortalUrl } from "@/lib/paddle-admin";
+import { getUserFromRequest } from "@/lib/supabase-auth";
 
 export async function POST(request: Request) {
   const user = await getUserFromRequest(request);
@@ -11,21 +10,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const subscription = await getSubscription(user.id);
-
-    if (!subscription.stripeCustomerId) {
-      return NextResponse.json(
-        { ok: false, error: "No billing account found yet." },
-        { status: 400 },
-      );
-    }
-
-    const session = await getStripe().billingPortal.sessions.create({
-      customer: subscription.stripeCustomerId,
-      return_url: `${getSiteUrl()}/profile`,
-    });
-
-    return NextResponse.json({ ok: true, url: session.url });
+    return NextResponse.json({ ok: true, url: await createPaddlePortalUrl(user.id) });
   } catch (error) {
     return NextResponse.json(
       {
