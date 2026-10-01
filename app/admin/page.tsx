@@ -103,6 +103,7 @@ export default function FounderDashboardPage() {
 
             {dashboard ? (
               <>
+                <VerifiedUserCards dashboard={dashboard} />
                 <OverviewCards dashboard={dashboard} />
                 <RevenueCards dashboard={dashboard} />
                 <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
@@ -156,8 +157,8 @@ function RevenueCards({ dashboard }: { dashboard: FounderDashboardData }) {
 
 function OverviewCards({ dashboard }: { dashboard: FounderDashboardData }) {
   const cards = [
-    { label: "Reviews Started", value: dashboard.overview.reviewsStarted },
-    { label: "Reviews Completed", value: dashboard.overview.reviewsCompleted },
+    { label: "Reviews Started (tracked events)", value: dashboard.overview.reviewsStarted },
+    { label: "Reviews Completed (saved records)", value: dashboard.overview.reviewsCompleted },
     { label: "Reviews Today", value: dashboard.overview.reviewsToday },
     { label: "Reviews This Week", value: dashboard.overview.reviewsThisWeek },
     { label: "Feedback Today", value: dashboard.overview.feedbackToday },
@@ -166,8 +167,8 @@ function OverviewCards({ dashboard }: { dashboard: FounderDashboardData }) {
     { label: "Feedback Rate", value: `${dashboard.overview.feedbackRate}%` },
     { label: "Share Rate", value: `${dashboard.overview.shareRate}%` },
     { label: "Emails Collected", value: dashboard.overview.emailsCollected },
-    { label: "Returning Visitors", value: dashboard.overview.returningVisitors },
-    { label: "Returning Users", value: dashboard.overview.returningUsers },
+    { label: "Repeat Visitor IDs (not users)", value: dashboard.overview.returningVisitors },
+    { label: "Repeat Review Visitor IDs", value: dashboard.overview.returningUsers },
     { label: "Reviews per User", value: dashboard.overview.reviewsPerUser },
     { label: "Average Reviews per Player", value: dashboard.overview.averageReviewsPerPlayer },
     { label: "Weekly Active Players", value: dashboard.overview.weeklyActivePlayers },
@@ -199,6 +200,27 @@ function OverviewCards({ dashboard }: { dashboard: FounderDashboardData }) {
         </Card>
       ))}
     </div>
+  );
+}
+
+function VerifiedUserCards({ dashboard }: { dashboard: FounderDashboardData }) {
+  const cards = [
+    { label: "Verified External Registrations", value: dashboard.verifiedUsers.registeredUsers },
+    { label: "External Users with First Review", value: dashboard.verifiedUsers.firstReviewUsers },
+    { label: "External Users with 2+ Reviews", value: dashboard.verifiedUsers.repeatReviewUsers },
+    { label: "Verified Active Users (7 days, any authenticated event)", value: dashboard.verifiedUsers.recentlyActiveUsers },
+    { label: "Anonymous Saved Reviews", value: dashboard.anonymousActivity.anonymousReviewRecords },
+    { label: "Anonymous Visitor IDs", value: dashboard.anonymousActivity.anonymousVisitors },
+  ];
+
+  return (
+    <Card className="border-primary/25 bg-primary/5 p-5 md:p-6">
+      <CardTitle>Verified External User Growth</CardTitle>
+      <p className="mt-2 text-sm leading-6 text-slate-400">Excludes Admin-marked test accounts. Active users have any authenticated growth event in the last seven days; anonymous activity remains separate.</p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((card) => <div key={card.label} className="rounded-xl border border-slate-800 bg-slate-950/48 p-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{card.label}</p><p className="mt-3 text-3xl font-semibold tracking-tight text-slate-50">{card.value}</p></div>)}
+      </div>
+    </Card>
   );
 }
 

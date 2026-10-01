@@ -41,6 +41,7 @@ export async function PATCH(request: Request) {
       userId?: string;
       role?: AdminUserRole;
       status?: AdminUserStatus;
+      isTestAccount?: boolean;
     };
 
     if (!payload.userId) {
@@ -54,11 +55,15 @@ export async function PATCH(request: Request) {
     if (payload.role && !isRole(payload.role)) {
       return NextResponse.json({ ok: false, error: "Choose a valid role." }, { status: 400 });
     }
+    if (typeof payload.isTestAccount !== "undefined" && typeof payload.isTestAccount !== "boolean") {
+      return NextResponse.json({ ok: false, error: "Choose a valid test account setting." }, { status: 400 });
+    }
 
     const user = await updateAdminUser({
       userId: payload.userId,
       role: payload.role,
       status: payload.status,
+      isTestAccount: payload.isTestAccount,
     });
 
     return NextResponse.json({ ok: true, user });

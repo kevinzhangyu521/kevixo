@@ -10,8 +10,11 @@ type GrowthEventRow = {
   event_type: string;
   review_id: string | null;
   visitor_id: string | null;
+  user_id: string | null;
   user_agent: string | null;
 };
+
+type ProfileDashboardRow = { user_id: string; is_test_account: boolean };
 
 type SubscriptionDashboardRow = {
   created_at: string;
@@ -27,6 +30,7 @@ type ReviewDashboardRow = {
   grade: string | null;
   confidence: number | null;
   user_agent: string | null;
+  user_id: string | null;
 };
 
 type FeedbackDashboardRow = {
@@ -39,6 +43,8 @@ type FeedbackDashboardRow = {
 };
 
 export type FounderDashboardData = {
+  verifiedUsers: { registeredUsers: number; firstReviewUsers: number; repeatReviewUsers: number; recentlyActiveUsers: number };
+  anonymousActivity: { anonymousReviewRecords: number; anonymousVisitors: number };
   overview: {
     reviewsStarted: number;
     reviewsCompleted: number;
@@ -133,6 +139,7 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
     feedbackRows,
     growthRows,
     subscriptionRows,
+    profileRows,
   ] = await Promise.all([
     countRows(supabase, reviewTable, { createdAfter: todayStart }),
     countRows(supabase, reviewTable, { createdAfter: weekStart }),
@@ -146,7 +153,9 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
     listDashboardFeedback(supabase),
     listGrowthEvents(supabase),
     listSubscriptions(supabase),
+    listDashboardProfiles(supabase),
   ]);
+  const verifiedUsers = buildVerifiedExternalGrowthMetrics({ now, profiles: profileRows, reviews: reviewRows, events: growthRows });
 
   const averageConfidence = average(
     reviewRows
@@ -170,6 +179,8 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
   );
 
   return {
+    verifiedUsers: { registeredUsers: verifiedUsers.registeredUsers, firstReviewUsers: verifiedUsers.firstReviewUsers, repeatReviewUsers: verifiedUsers.repeatReviewUsers, recentlyActiveUsers: verifiedUsers.recentlyActiveUsers },
+    anonymousActivity: { anonymousReviewRecords: verifiedUsers.anonymousReviewRecords, anonymousVisitors: verifiedUsers.anonymousVisitors },
     overview: {
       reviewsStarted: growthRows.filter((row) => row.event_type === "review_started").length,
       reviewsCompleted: totalReviews,
@@ -261,7 +272,7 @@ async function countRows(
 async function listDashboardReviews(supabase: ReturnType<typeof getAdminClient>) {
   const { data, error } = await supabase
     .from(reviewTable)
-    .select("created_at, review_id, grade, confidence, user_agent")
+    .select("created_at, review_id, grade, confidence, user_agent, user_id")
     .order("created_at", { ascending: false })
     .limit(500)
     .returns<ReviewDashboardRow[]>();
@@ -291,7 +302,7 @@ async function listDashboardFeedback(supabase: ReturnType<typeof getAdminClient>
 async function listGrowthEvents(supabase: ReturnType<typeof getAdminClient>) {
   const { data, error } = await supabase
     .from(growthEventsTable)
-    .select("created_at, event_type, review_id, visitor_id, user_agent")
+    .select("created_at, event_type, review_id, visitor_id, user_id, user_agent")
     .order("created_at", { ascending: false })
     .limit(1000)
     .returns<GrowthEventRow[]>();
@@ -302,6 +313,54 @@ async function listGrowthEvents(supabase: ReturnType<typeof getAdminClient>) {
   }
 
   return data ?? [];
+}
+
+async function listDashboardProfiles(supabase: ReturnType<typeof getAdminClient>) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_id, is_test_account")
+    .returns<ProfileDashboardRow[]>();
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export function buildVerifiedExternalGrowthMetrics({
+  events,
+  now,
+  profiles,
+  reviews,
+}: {
+  now: Date;
+  profiles: Array<Pick<ProfileDashboardRow, "user_id" | "is_test_account">>;
+  reviews: Array<Pick<ReviewDashboardRow, "user_id">>;
+  events: Array<Pick<GrowthEventRow, "created_at" | "user_id" | "visitor_id">>;
+}) {
+  const externalUserIds = new Set(profiles.filter((profile) => !profile.is_test_account).map((profile) => profile.user_id));
+  const reviewCounts = new Map<string, number>();
+  const anonymousVisitors = new Set<string>();
+  const recentlyActiveUsers = new Set<string>();
+  const sevenDaysAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+
+  for (const review of reviews) {
+    if (review.user_id && externalUserIds.has(review.user_id)) {
+      reviewCounts.set(review.user_id, (reviewCounts.get(review.user_id) ?? 0) + 1);
+    }
+  }
+  for (const event of events) {
+    if (!event.user_id && event.visitor_id) anonymousVisitors.add(event.visitor_id);
+    if (event.user_id && externalUserIds.has(event.user_id) && new Date(event.created_at).getTime() >= sevenDaysAgo) {
+      recentlyActiveUsers.add(event.user_id);
+    }
+  }
+  return {
+    registeredUsers: externalUserIds.size,
+    firstReviewUsers: reviewCounts.size,
+    repeatReviewUsers: Array.from(reviewCounts.values()).filter((count) => count >= 2).length,
+    recentlyActiveUsers: recentlyActiveUsers.size,
+    anonymousReviewRecords: reviews.filter((review) => !review.user_id).length,
+    anonymousVisitors: anonymousVisitors.size,
+  };
 }
 
 async function listSubscriptions(supabase: ReturnType<typeof getAdminClient>) {

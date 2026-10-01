@@ -19,6 +19,7 @@ export type AdminUser = {
   paddleCustomerId?: string;
   paddleSubscriptionId?: string;
   renewalAt?: string;
+  isTestAccount: boolean;
 };
 
 type ProfileRow = {
@@ -30,6 +31,7 @@ type ProfileRow = {
   role: AdminUserRole | null;
   plan: AdminUserPlan | null;
   status: AdminUserStatus | null;
+  is_test_account: boolean | null;
   created_at: string;
   updated_at: string;
 };
@@ -82,7 +84,7 @@ export async function listAdminUsers() {
   const supabase = getAdminUsersClient();
   const { data, error } = await supabase
     .from(profileTable)
-    .select("id, user_id, email, display_name, avatar_url, role, plan, status, created_at, updated_at")
+    .select("id, user_id, email, display_name, avatar_url, role, plan, status, is_test_account, created_at, updated_at")
     .order("created_at", { ascending: false })
     .returns<ProfileRow[]>();
 
@@ -96,6 +98,7 @@ export async function listAdminUsers() {
 }
 
 export async function updateAdminUser({
+  isTestAccount,
   role,
   status,
   userId,
@@ -103,8 +106,9 @@ export async function updateAdminUser({
   userId: string;
   role?: AdminUserRole;
   status?: AdminUserStatus;
+  isTestAccount?: boolean;
 }) {
-  const updatePayload: Partial<Pick<ProfileRow, "plan" | "role" | "status" | "updated_at">> = {
+  const updatePayload: Partial<Pick<ProfileRow, "plan" | "role" | "status" | "is_test_account" | "updated_at">> = {
     updated_at: new Date().toISOString(),
   };
 
@@ -114,6 +118,9 @@ export async function updateAdminUser({
 
   if (status) {
     updatePayload.status = status;
+  }
+  if (typeof isTestAccount === "boolean") {
+    updatePayload.is_test_account = isTestAccount;
   }
 
   if (Object.keys(updatePayload).length === 1) {
@@ -125,7 +132,7 @@ export async function updateAdminUser({
     .from(profileTable)
     .update(updatePayload)
     .eq("id", userId)
-    .select("id, user_id, email, display_name, avatar_url, role, plan, status, created_at, updated_at")
+    .select("id, user_id, email, display_name, avatar_url, role, plan, status, is_test_account, created_at, updated_at")
     .single<ProfileRow>();
 
   if (error) {
@@ -205,6 +212,7 @@ function fromProfileRow(
     paddleCustomerId: subscription?.paddle_customer_id ?? undefined,
     paddleSubscriptionId: subscription?.paddle_subscription_id ?? undefined,
     renewalAt: subscription?.next_billed_at ?? undefined,
+    isTestAccount: row.is_test_account ?? false,
   };
 }
 

@@ -86,7 +86,7 @@ export default function AdminUsersPage() {
 
   async function updateUser(
     userId: string,
-    update: Partial<Pick<AdminUser, "role" | "status">>,
+    update: Partial<Pick<AdminUser, "role" | "status" | "isTestAccount">>,
   ) {
     setSavingUserId(userId);
     setMessage("Saving user...");
@@ -193,6 +193,7 @@ export default function AdminUsersPage() {
                       <th className="px-5 py-4 font-semibold">Status</th>
                       <th className="px-5 py-4 font-semibold">Paddle</th>
                       <th className="px-5 py-4 font-semibold">Role</th>
+                      <th className="px-5 py-4 font-semibold">Data</th>
                       <th className="px-5 py-4 text-right font-semibold">Review Count</th>
                     </tr>
                   </thead>
@@ -228,7 +229,7 @@ function UserRow({
   isSaving: boolean;
   onUpdate: (
     userId: string,
-    update: Partial<Pick<AdminUser, "role" | "status">>,
+    update: Partial<Pick<AdminUser, "role" | "status" | "isTestAccount">>,
   ) => void;
   user: AdminUser;
 }) {
@@ -255,6 +256,15 @@ function UserRow({
         <span className="inline-flex rounded-full border border-slate-800 bg-slate-950/70 px-3 py-1 font-medium text-slate-200">
           {formatSubscriptionStatus(user.subscriptionStatus)}
         </span>
+      </td>
+      <td className="px-5 py-4">
+        <SelectControl
+          label="Data classification"
+          disabled={isSaving}
+          value={user.isTestAccount ? "test" : "external"}
+          options={[{ label: "External", value: "external" }, { label: "Test account", value: "test" }]}
+          onChange={(value) => onUpdate(user.id, { isTestAccount: value === "test" })}
+        />
       </td>
       <td className="px-5 py-4 text-slate-400">
         {user.renewalAt ? formatDate(user.renewalAt) : "Not scheduled"}
