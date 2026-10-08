@@ -19,6 +19,7 @@ import { readImportedHandModel } from "@/lib/hand-import";
 import {
   buildMemoryEntry,
   createPlayerMemory,
+  getEstablishedPatternInsight,
   getPlayerMemoryInsights,
   saveReviewToMemory,
   type PlayerMemoryEntry,
@@ -29,6 +30,7 @@ import {
   type UsefulPart,
 } from "@/lib/review-feedback";
 import { findStoredReview, saveStoredReview } from "@/lib/review-store";
+import { buildReviewNextSteps } from "@/lib/review-next-steps";
 import { getKevixoVisitorId, saveGrowthEvent, saveReviewEmail } from "@/lib/growth-client";
 import { getAuthHeaders } from "@/lib/auth-client";
 import { parseHandHistory } from "@/lib/hand-history/parser";
@@ -257,7 +259,7 @@ export default function ReviewPage() {
       void saveGrowthEvent("analyze_succeeded", payload.report.reviewId);
       const nextMemoryReviews = saveReviewToMemory(
         createPlayerMemory(window.localStorage),
-        buildMemoryEntry(payload.report),
+        buildMemoryEntry(payload.report, selectedDemoId !== ""),
       );
       setMemoryReviews(nextMemoryReviews);
     } catch (caughtError) {
@@ -355,6 +357,18 @@ export default function ReviewPage() {
     trackDemoSelected(demo.id);
   }
 
+  function handleReviewAnotherHand() {
+    setSelectedDemoId("");
+    setHandHistory("");
+    setReport(null);
+    setError("");
+    setReviewLookupMessage("");
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      document.getElementById("hand-history")?.focus();
+    });
+  }
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader />
@@ -451,7 +465,10 @@ export default function ReviewPage() {
             <Textarea
               id="hand-history"
               value={handHistory}
-              onChange={(event) => setHandHistory(event.target.value)}
+              onChange={(event) => {
+                setSelectedDemoId("");
+                setHandHistory(event.target.value);
+              }}
               placeholder="Paste a complete hand history here..."
               aria-describedby={error ? "review-error" : "character-counter"}
               className="mt-3 min-h-[260px]"
@@ -490,6 +507,13 @@ export default function ReviewPage() {
         ) : null}
         {report ? <ReviewShareCard report={report} /> : null}
         {report ? <ReportCards report={report} /> : null}
+        {report ? (
+          <ReviewNextSteps
+            onReviewAnotherHand={handleReviewAnotherHand}
+            report={report}
+            reviews={memoryReviews}
+          />
+        ) : null}
         {report ? (
           <ReviewConversionFlow
             isAccountConnected={isAccountConnected}
@@ -562,6 +586,63 @@ export default function ReviewPage() {
   );
 }
 
+function ReviewNextSteps({
+  onReviewAnotherHand,
+  report,
+  reviews,
+}: {
+  onReviewAnotherHand: () => void;
+  report: CoachingReport;
+  reviews: PlayerMemoryEntry[];
+}) {
+  const steps = buildReviewNextSteps({
+    report,
+    reviewCount: reviews.length,
+    patternInsight: getEstablishedPatternInsight(reviews) ?? undefined,
+  });
+
+  return (
+    <section className="fade-in mt-6" aria-label="Next study steps">
+      <Card className="border-primary/35 bg-primary/10 p-5 md:p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+          Your next study move
+        </p>
+        <CardTitle className="mt-3">Put this review into your next decision</CardTitle>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+          Treat this as a practical coaching cue for a similar spot, not a solver verdict.
+        </p>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <NextStep label="Next decision" value={steps.nextDecision} />
+          <NextStep label="Check first next time" value={steps.nextCheck} />
+          <NextStep label="5-minute practice" value={steps.practice} />
+        </div>
+
+        <p className="mt-5 max-w-3xl rounded-xl border border-slate-800 bg-slate-950/48 p-4 text-sm leading-6 text-slate-300">
+          {steps.historyMessage}
+        </p>
+
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <Button type="button" onClick={onReviewAnotherHand}>
+            Review another hand
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/my-reviews">Open My Reviews</Link>
+          </Button>
+        </div>
+      </Card>
+    </section>
+  );
+}
+
+function NextStep({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950/48 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</p>
+      <p className="mt-3 text-sm leading-6 text-slate-100">{value}</p>
+    </div>
+  );
+}
 function ReviewConversionFlow({
   isAccountConnected,
   isGuestNoticeDismissed,
@@ -1130,6 +1211,8 @@ function getMissingHandDetails(handHistory: string) {
 }
 
 function ReportCards({ report }: { report: CoachingReport }) {
+  const checklist = Array.isArray(report.nextTimeChecklist) ? report.nextTimeChecklist : [];
+
   return (
     <section className="fade-in mt-10 grid gap-5" aria-label="Kevixo coaching report">
       <ResultCard title="Key Lesson">{report.keyLesson}</ResultCard>
@@ -1148,7 +1231,7 @@ function ReportCards({ report }: { report: CoachingReport }) {
       <Card className="border-primary/25 bg-primary/5">
         <CardTitle>Next Time Checklist</CardTitle>
         <ul className="mt-4 grid gap-3">
-          {report.nextTimeChecklist.map((item, index) => (
+          {checklist.map((item, index) => (
             <li
               key={item}
               className="flex gap-3 rounded-xl border border-slate-800 bg-slate-950/48 p-4 text-sm leading-6 text-slate-200"

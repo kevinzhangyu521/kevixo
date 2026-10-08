@@ -2,6 +2,7 @@ import {
   buildMemoryEntry,
   createPlayerMemory,
   getAverageGradeTrend,
+  getEstablishedPatternInsight,
   getPlayerMemoryInsights,
   saveReviewToMemory,
   type PlayerMemoryEntry,
@@ -39,6 +40,7 @@ function entry(overrides: Partial<PlayerMemoryEntry>): PlayerMemoryEntry {
     homework: overrides.homework ?? "Review three river calls for 5 minutes.",
     difficulty: overrides.difficulty ?? 4,
     tags: overrides.tags ?? ["river", "overcalling"],
+    isDemo: overrides.isDemo ?? false,
   };
 }
 
@@ -115,9 +117,26 @@ function testAverageGradeTrendCanStayFlat() {
   assert(trend === null, "Expected no trend message when there is not enough movement.");
 }
 
+function testDoesNotTreatDemoHandsAsARecurringPattern() {
+  const demos = [
+    entry({ id: "demo-3", isDemo: true }),
+    entry({ id: "demo-2", isDemo: true }),
+    entry({ id: "demo-1", isDemo: true }),
+  ];
+
+  assert(
+    getEstablishedPatternInsight(demos) === null,
+    "Expected demo hands not to be treated as a recurring player pattern.",
+  );
+  assert(
+    !getPlayerMemoryInsights(demos).some((insight) => insight.includes("overcalling")),
+    "Expected demo hands not to create a repeated-leak insight in player memory.",
+  );
+}
 testKeepsLatestTwentyReviews();
 testFindsRecentPatterns();
 testBuildsMemoryEntryFromReport();
+testDoesNotTreatDemoHandsAsARecurringPattern();
 testAverageGradeTrendCanStayFlat();
 
 console.log("player memory tests passed");

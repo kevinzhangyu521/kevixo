@@ -12,6 +12,7 @@ export type PlayerMemoryEntry = {
   homework: string;
   difficulty: number;
   tags: string[];
+  isDemo?: boolean;
 };
 
 export type PlayerMemory = {
@@ -99,7 +100,7 @@ export function saveReviewToMemory(
   return memory.write([entry, ...memory.read()].slice(0, maxReviews));
 }
 
-export function buildMemoryEntry(report: ReviewMemorySource): PlayerMemoryEntry {
+export function buildMemoryEntry(report: ReviewMemorySource, isDemo = false): PlayerMemoryEntry {
   const text = [
     report.biggestMistake,
     report.leak,
@@ -115,7 +116,22 @@ export function buildMemoryEntry(report: ReviewMemorySource): PlayerMemoryEntry 
     homework: report.homework,
     difficulty: report.difficulty,
     tags: detectTags(text),
+    isDemo,
   };
+}
+
+export function getEstablishedPatternInsight(reviews: PlayerMemoryEntry[]): string | null {
+  const handReviews = reviews.filter((review) => review.isDemo === false);
+
+  if (handReviews.length < 3) {
+    return null;
+  }
+
+  return (
+    getRepeatedLeakInsight(handReviews) ??
+    getRecentStreetPattern(handReviews) ??
+    getDifficultyInsight(handReviews)
+  );
 }
 
 export function getPlayerMemoryInsights(reviews: PlayerMemoryEntry[]): string[] {
@@ -126,11 +142,12 @@ export function getPlayerMemoryInsights(reviews: PlayerMemoryEntry[]): string[] 
     ];
   }
 
+  const handReviews = reviews.filter((review) => review.isDemo === false);
   const insights = [
-    getRecentStreetPattern(reviews),
-    getAverageGradeTrend(reviews),
-    getRepeatedLeakInsight(reviews),
-    getDifficultyInsight(reviews),
+    getRecentStreetPattern(handReviews),
+    getAverageGradeTrend(handReviews),
+    getRepeatedLeakInsight(handReviews),
+    getDifficultyInsight(handReviews),
   ].filter((insight): insight is string => Boolean(insight));
 
   if (insights.length > 0) {
