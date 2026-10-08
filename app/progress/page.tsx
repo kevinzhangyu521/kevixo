@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders } from "@/lib/auth-client";
 import { LeakTrackerCard } from "@/components/leak-tracker-card";
+import { TrainingCenterCard } from "@/components/training-center-card";
 
 type ProgressReview = {
   id: string;
@@ -115,6 +116,8 @@ export default function ProgressPage() {
             </Button>
           </div>
         </div>
+
+        <TrainingCenterCard />
 
         {state === "loading" ? (
           <ProgressMessage title="Loading progress" message="Kevixo is checking your saved reviews." />

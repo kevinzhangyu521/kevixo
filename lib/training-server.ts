@@ -42,7 +42,7 @@ type TrainingDependencies = {
   db: TrainingDatabase;
   getLeakTracker: (userId: string) => Promise<LeakTracker>;
 };
-type TrainingData = { training: Training; records: TrainingRecord[] };
+type TrainingData = { training: Training; trainingKey?: string; records: TrainingRecord[] };
 type CompletionDependencies = {
   getTraining: (userId: string) => Promise<TrainingData>;
   saveTrainingRecord: (userId: string, trainingKey: string, training: Training) => Promise<TrainingRecord>;
@@ -102,7 +102,8 @@ export async function getTrainingWithDependencies(
     }),
   );
 
-  return { training: resolveTraining(reviews, tracker.patterns), records };
+  const training = resolveTraining(reviews, tracker.patterns);
+  return { training, trainingKey: trainingKeyFor(training), records };
 }
 
 export async function completeTrainingWithDependencies(

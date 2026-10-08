@@ -627,6 +627,9 @@ function ReviewNextSteps({
             Review another hand
           </Button>
           <Button asChild variant="secondary">
+            <Link href="/progress">My Next Training</Link>
+          </Button>
+          <Button asChild variant="secondary">
             <Link href="/my-reviews">Open My Reviews</Link>
           </Button>
         </div>
@@ -765,8 +768,11 @@ function SaveReviewsCard({
           </p>
         </div>
         <Button asChild variant="secondary">
-          <Link href="/my-reviews">Open My Reviews</Link>
-        </Button>
+            <Link href="/progress">My Next Training</Link>
+          </Button>
+          <Button asChild variant="secondary">
+            <Link href="/my-reviews">Open My Reviews</Link>
+          </Button>
       </div>
 
       <form onSubmit={onSubmit} className="mt-5 grid gap-3 md:grid-cols-[1fr_auto] md:items-start">

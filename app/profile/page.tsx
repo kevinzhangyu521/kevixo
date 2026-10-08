@@ -108,6 +108,9 @@ export default function ProfilePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="secondary">
+              <Link href="/progress">My Next Training</Link>
+            </Button>
+            <Button asChild variant="secondary">
               <Link href="/my-reviews">My Reviews</Link>
             </Button>
             <Button asChild>
