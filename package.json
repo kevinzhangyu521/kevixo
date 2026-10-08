@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx tests/player-memory.test.ts && tsx tests/daily-challenge-history.test.ts && tsx tests/leak-tracker.test.ts && tsx tests/review-next-steps.test.ts && tsx tests/review-feedback.test.ts && tsx tests/funnel-events.test.mjs && tsx tests/verified-growth.test.ts && tsx tests/paddle-billing.test.ts && node tests/seo-sprint-1.test.mjs"
+    "test": "tsx tests/player-memory.test.ts && tsx tests/daily-challenge-history.test.ts && tsx tests/leak-tracker.test.ts && tsx tests/training.test.ts && tsx tests/training-server.test.ts && tsx tests/training-route.test.ts && tsx tests/training-post.test.ts && tsx tests/training-feedback.test.ts && tsx tests/review-next-steps.test.ts && tsx tests/review-feedback.test.ts && tsx tests/funnel-events.test.mjs && tsx tests/verified-growth.test.ts && tsx tests/paddle-billing.test.ts && node tests/seo-sprint-1.test.mjs"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.9",
