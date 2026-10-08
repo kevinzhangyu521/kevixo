@@ -13,6 +13,7 @@ import {
   type DailyCompletion,
 } from "@/lib/daily-challenge";
 import { saveGrowthEvent } from "@/lib/growth-client";
+import { getAuthHeaders, getCurrentUserId } from "@/lib/auth-client";
 
 const progressKey = "kevixo.dailyChallenge.progress.v1";
 const completionKey = "kevixo.dailyChallenge.completions.v1";
@@ -22,6 +23,11 @@ export default function DailyChallengePage() {
   const [progress, setProgress] = useState<DailyChallengeProgress>(createInitialProgress);
   const [completion, setCompletion] = useState<DailyCompletion | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [serverAttemptId, setServerAttemptId] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -34,18 +40,17 @@ export default function DailyChallengePage() {
         setCompletion(storedCompletion);
         setSelectedOptionId(storedCompletion.selectedOptionId);
       }
+      void loadAccountAttempt(challenge.dateKey, challenge.id, challenge.version);
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [challenge.dateKey]);
+  }, [challenge.dateKey, challenge.id, challenge.version]);
 
   const selectedOption = challenge.options.find((option) => option.id === selectedOptionId);
   const isCompletedToday = Boolean(completion);
 
-  function handleSelect(optionId: string) {
-    if (isCompletedToday) {
-      return;
-    }
+  async function handleSelect(optionId: string) {
+    if (isCompletedToday || isSaving) return;
 
     const nextCompletion: DailyCompletion = {
       dateKey: challenge.dateKey,
@@ -54,7 +59,6 @@ export default function DailyChallengePage() {
       completedAt: new Date().toISOString(),
     };
     const nextProgress = completeDailyChallenge(progress, nextCompletion);
-
     setSelectedOptionId(optionId);
     setCompletion(nextCompletion);
     setProgress(nextProgress);
@@ -62,8 +66,61 @@ export default function DailyChallengePage() {
     writeProgress(nextProgress);
     void saveGrowthEvent("daily_challenge_attempted", challenge.id);
     void saveGrowthEvent("daily_challenge_completed", challenge.id);
+
+    if (!isSignedIn) {
+      setSaveMessage("Saved on this device. Sign in to keep your practice across devices.");
+      return;
+    }
+
+    await saveAccountAttempt(optionId);
   }
 
+  async function loadAccountAttempt(dateKey: string, challengeId: string, challengeVersion: string) {
+    const userId = await getCurrentUserId();
+    setIsSignedIn(Boolean(userId));
+    if (!userId) return;
+    try {
+      const response = await fetch("/api/daily-challenge", { headers: await getAuthHeaders() });
+      const payload = (await response.json()) as { ok: boolean; attempts?: Array<{ id: string; challengeId: string; challengeVersion: string; challengeDate: string; selectedOptionId: string; completedAt: string }> };
+      const attempt = payload.attempts?.find((entry) => entry.challengeDate === dateKey && entry.challengeId === challengeId && entry.challengeVersion === challengeVersion);
+      if (!attempt) return;
+      const savedCompletion = { dateKey, challengeId, selectedOptionId: attempt.selectedOptionId, completedAt: attempt.completedAt };
+      setCompletion(savedCompletion);
+      setSelectedOptionId(attempt.selectedOptionId);
+      setServerAttemptId(attempt.id);
+      setSaveMessage("Saved to your account.");
+    } catch {
+      setSaveMessage("Your saved practice could not be loaded right now.");
+    }
+  }
+
+  async function saveAccountAttempt(optionId = selectedOptionId) {
+    if (!optionId) return;
+    setIsSaving(true);
+    setSaveMessage("Saving your practice...");
+    try {
+      const response = await fetch("/api/daily-challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({ challengeId: challenge.id, challengeVersion: challenge.version, challengeDate: challenge.dateKey, selectedOptionId: optionId }),
+      });
+      const payload = (await response.json()) as { ok: boolean; attempt?: { id: string }; error?: string };
+      if (!response.ok || !payload.ok || !payload.attempt) throw new Error(payload.error ?? "Your practice could not be saved.");
+      setServerAttemptId(payload.attempt.id);
+      setSaveMessage("Saved to your account.");
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? `${error.message} Try again when you are ready.` : "Your practice could not be saved. Try again when you are ready.");
+    } finally { setIsSaving(false); }
+  }
+
+  async function saveFeedback(helpful: boolean) {
+    if (!serverAttemptId) { setFeedbackMessage("Sign in to save feedback across devices."); return; }
+    try {
+      const response = await fetch("/api/daily-challenge", { method: "PUT", headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) }, body: JSON.stringify({ attemptId: serverAttemptId, helpful }) });
+      const payload = await response.json() as { ok: boolean; error?: string };
+      setFeedbackMessage(payload.ok ? "Thanks for the feedback." : payload.error ?? "Your feedback could not be saved.");
+    } catch { setFeedbackMessage("Your feedback could not be saved. Please try again later."); }
+  }
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader ctaLabel="Analyze Free" ctaHref="/review" />
@@ -141,6 +198,9 @@ export default function DailyChallengePage() {
                   explanation={challenge.explanation}
                   takeaway={challenge.takeaway}
                   completedToday={isCompletedToday}
+                canSaveFeedback={Boolean(serverAttemptId)}
+                  feedbackMessage={feedbackMessage}
+                  onFeedback={saveFeedback}
                 />
               ) : null}
             </Card>
@@ -166,12 +226,14 @@ export default function DailyChallengePage() {
                   ? "Nice work. Your explanation is saved for today. Keep the momentum going by reviewing a full hand next."
                   : "Pick the action you would take. Kevixo will reveal the coaching note immediately after your choice."}
               </p>
+              <p className="mt-3 text-xs leading-5 text-slate-500">{saveMessage || (isSignedIn ? "Your practice will be saved to your account." : "Practice history is saved only on this device.")}</p>
+              {isSignedIn && isCompletedToday && !serverAttemptId ? <button type="button" onClick={() => void saveAccountAttempt()} className="mt-3 text-sm font-semibold text-primary">Retry saving</button> : null}
               <div className="mt-5 flex flex-col gap-3 sm:flex-row lg:flex-col">
                 <Button asChild>
                   <Link href="/review">Review another hand</Link>
                 </Button>
                 <Button asChild variant="secondary">
-                  <Link href="/profile">View Player Profile</Link>
+                  <Link href="/daily/history">Practice history</Link>
                 </Button>
               </div>
             </Card>
@@ -196,11 +258,17 @@ function ExplanationCard({
   explanation,
   takeaway,
   completedToday,
+  canSaveFeedback,
+  feedbackMessage,
+  onFeedback,
 }: {
   isBestChoice: boolean;
   explanation: string;
   takeaway: string;
   completedToday: boolean;
+  canSaveFeedback: boolean;
+  feedbackMessage: string;
+  onFeedback: (helpful: boolean) => void;
 }) {
   return (
     <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/10 p-5">
@@ -214,10 +282,16 @@ function ExplanationCard({
       <p className="mt-4 rounded-xl border border-slate-800 bg-slate-950/50 p-4 text-sm leading-6 text-slate-300">
         {takeaway}
       </p>
-      {completedToday ? (
-        <p className="mt-4 text-xs font-semibold text-slate-500">
-          Today&apos;s completion has been added to your streak.
-        </p>
+            {completedToday ? (
+        <div className="mt-4">
+          <p className="text-xs font-semibold text-slate-500">Today&apos;s completion has been added to your streak.</p>
+          <p className="mt-4 text-sm font-semibold text-slate-200">Was this explanation useful?</p>
+          <div className="mt-2 flex gap-3">
+            <button type="button" onClick={() => onFeedback(true)} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200">Yes</button>
+            <button type="button" onClick={() => onFeedback(false)} className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200">Not really</button>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">{feedbackMessage || (canSaveFeedback ? "" : "Sign in to save feedback across devices.")}</p>
+        </div>
       ) : null}
     </div>
   );

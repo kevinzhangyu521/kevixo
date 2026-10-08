@@ -6,6 +6,7 @@ export type DailyChallengeOption = {
 
 export type DailyChallenge = {
   id: string;
+  version: string;
   title: string;
   dateKey: string;
   board: string[];
@@ -34,6 +35,7 @@ export type DailyCompletion = {
 const challenges = [
   {
     id: "river-overbet-call",
+    version: "1",
     title: "River Pressure Spot",
     board: ["Ah", "9d", "4s", "2c", "Jd"],
     position: "Button vs Big Blind",
@@ -51,6 +53,7 @@ const challenges = [
   },
   {
     id: "missed-cbet-dry-board",
+    version: "1",
     title: "Missed C-Bet Opportunity",
     board: ["Kc", "7d", "2s"],
     position: "Cutoff vs Big Blind",
@@ -68,6 +71,7 @@ const challenges = [
   },
   {
     id: "turn-barrel-equity",
+    version: "1",
     title: "Turn Barrel Decision",
     board: ["Qh", "8h", "3c", "Ts"],
     position: "Hijack vs Button",
@@ -85,6 +89,7 @@ const challenges = [
   },
   {
     id: "thin-value-river",
+    version: "1",
     title: "Thin Value River",
     board: ["Kd", "8s", "5c", "5h", "2d"],
     position: "Small Blind vs Big Blind",
@@ -102,6 +107,7 @@ const challenges = [
   },
   {
     id: "three-bet-pot-flop",
+    version: "1",
     title: "3-Bet Pot Control",
     board: ["Jh", "7c", "4d"],
     position: "Big Blind vs Button",
@@ -208,4 +214,10 @@ function parseUtcDay(dateKey: string) {
 
 function formatUtcDay(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+export function getDailyChallengeByIdAndVersion(id: string, version: string): DailyChallenge | null {
+  const challenge = challenges.find((candidate) => candidate.id === id && candidate.version === version);
+
+  return challenge ? { ...challenge, dateKey: "" } : null;
 }
