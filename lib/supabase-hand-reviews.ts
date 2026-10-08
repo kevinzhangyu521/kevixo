@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { CoachingReport } from "@/services/ai";
 import { detectHandHistoryPlatform } from "@/lib/hand-history/detector";
+import { buildLeakTracker, type DecisionTheme, type LeakEvidence } from "@/lib/leak-tracker";
 
 type HandReviewRow = {
   id: string;
@@ -15,6 +16,8 @@ type HandReviewRow = {
   user_agent: string | null;
   user_id: string | null;
   ai_version: string;
+  review_source: "hand_history" | "demo" | null;
+  decision_theme: DecisionTheme | null;
 };
 
 export type PersistedHandReview = {
@@ -49,11 +52,15 @@ export async function insertHandReview({
   report,
   userAgent,
   userId,
+  reviewSource,
+  decisionTheme,
 }: {
   handHistory: string;
   report: CoachingReport;
   userAgent?: string;
   userId?: string;
+  reviewSource: "hand_history" | "demo" | null;
+  decisionTheme: DecisionTheme | null;
 }) {
   const supabase = getHandReviewServerClient();
   const payload = {
@@ -67,6 +74,8 @@ export async function insertHandReview({
     user_agent: userAgent ?? null,
     user_id: userId ?? null,
     ai_version: "v1",
+    review_source: reviewSource,
+    decision_theme: decisionTheme,
   };
 
   logHandReviewInsertPayload(payload);
@@ -150,6 +159,23 @@ export async function listHandReviewsForUser(userId: string) {
   return (data ?? []).map(toUserHistoryItem);
 }
 
+
+export async function getLeakTrackerForUser(userId: string) {
+  const supabase = getHandReviewAdminClient();
+  const { data, error } = await supabase.from(tableName)
+    .select("review_id, created_at, hand_history, review_source, decision_theme")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const evidence: LeakEvidence[] = (data ?? []).map((row) => ({
+    reviewId: row.review_id,
+    createdAt: row.created_at,
+    title: buildHandTitle(row.hand_history),
+    source: row.review_source === "hand_history" || row.review_source === "demo" ? row.review_source : null,
+    decisionTheme: row.decision_theme as DecisionTheme | null,
+  }));
+  return buildLeakTracker(evidence);
+}
 function getHandReviewServerClient() {
   const supabaseUrl = getSupabaseUrl();
   const supabaseKey = getSupabaseServiceRoleKey() ?? getSupabaseAnonKey();
@@ -277,6 +303,8 @@ function logHandReviewInsertPayload(payload: {
   user_agent: string | null;
   user_id: string | null;
   ai_version: string;
+  review_source: "hand_history" | "demo" | null;
+  decision_theme: DecisionTheme | null;
 }) {
   if (process.env.NODE_ENV === "production") {
     return;

@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders } from "@/lib/auth-client";
+import { LeakTrackerCard } from "@/components/leak-tracker-card";
 
 type ProgressReview = {
   id: string;
@@ -159,6 +160,7 @@ export default function ProgressPage() {
               </p>
             </Card>
 
+            <LeakTrackerCard />
             <Card className="mt-5 p-5 md:p-6">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>

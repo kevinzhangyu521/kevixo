@@ -8,6 +8,8 @@ import { insertHandReview } from "@/lib/supabase-hand-reviews";
 import { parseHandHistory } from "@/lib/hand-history/parser";
 import { getUserFromRequest } from "@/lib/supabase-auth";
 import { insertGrowthEvent } from "@/lib/growth-events";
+import { demoHands } from "@/lib/demo-hands";
+import { classifyDecisionTheme } from "@/lib/leak-tracker";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -71,6 +73,8 @@ export async function POST(request: Request) {
       report: result.report,
       userAgent: request.headers.get("user-agent") ?? undefined,
       userId,
+      reviewSource: isDemoHand(normalizedHandHistory) ? "demo" : parsedHand.isCompleteEnough ? "hand_history" : null,
+      decisionTheme: classifyDecisionTheme(result.report.leak),
     });
     await savePersistenceEvent({
       eventType: "review_persisted",
@@ -144,4 +148,8 @@ function getErrorDetails(error: unknown) {
   }
 
   return { name: "UnknownError", message: String(error) };
+}
+
+function isDemoHand(handHistory: string) {
+  return demoHands.some((demo) => parseHandHistory(demo.hand).normalizedText === handHistory);
 }
