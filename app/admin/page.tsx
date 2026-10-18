@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AdminNav } from "@/components/admin-nav";
 import { SiteHeader } from "@/components/site-header";
@@ -8,11 +8,26 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders } from "@/lib/auth-client";
 import type { FounderDashboardData } from "@/lib/admin-dashboard";
 
+type RangePreset = "last-30" | "previous-30" | "custom";
+
 export default function FounderDashboardPage() {
   const [dashboard, setDashboard] = useState<FounderDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [adminError, setAdminError] = useState("");
   const [accessDenied, setAccessDenied] = useState(false);
+  const [rangePreset, setRangePreset] = useState<RangePreset>("last-30");
+  const [customStart, setCustomStart] = useState(getDateInputValue(daysAgo(29)));
+  const [customEnd, setCustomEnd] = useState(getDateInputValue(new Date()));
+  const rangeQuery = useMemo(() => {
+    const searchParams = new URLSearchParams({ range: rangePreset });
+
+    if (rangePreset === "custom") {
+      searchParams.set("start", customStart);
+      searchParams.set("end", customEnd);
+    }
+
+    return searchParams.toString();
+  }, [customEnd, customStart, rangePreset]);
 
   const loadDashboard = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
@@ -20,7 +35,7 @@ export default function FounderDashboardPage() {
     setAccessDenied(false);
 
     try {
-      const response = await fetch("/api/admin/dashboard", {
+      const response = await fetch(`/api/admin/dashboard?${rangeQuery}`, {
         headers: await getAuthHeaders(),
         signal,
       });
@@ -51,7 +66,7 @@ export default function FounderDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [rangeQuery]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -91,6 +106,15 @@ export default function FounderDashboardPage() {
 
         <AdminNav active="dashboard" />
 
+        <DateRangeControls
+          customEnd={customEnd}
+          customStart={customStart}
+          onCustomEndChange={setCustomEnd}
+          onCustomStartChange={setCustomStart}
+          onPresetChange={setRangePreset}
+          preset={rangePreset}
+        />
+
         {accessDenied ? (
           <AccessDeniedCard />
         ) : (
@@ -128,6 +152,71 @@ export default function FounderDashboardPage() {
   );
 }
 
+function DateRangeControls({
+  customEnd,
+  customStart,
+  onCustomEndChange,
+  onCustomStartChange,
+  onPresetChange,
+  preset,
+}: {
+  customEnd: string;
+  customStart: string;
+  onCustomEndChange: (value: string) => void;
+  onCustomStartChange: (value: string) => void;
+  onPresetChange: (value: RangePreset) => void;
+  preset: RangePreset;
+}) {
+  return (
+    <Card className="mt-6 p-4 md:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <CardTitle>Growth date range</CardTitle>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            All growth cards use UTC calendar dates and the same selected range.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="grid gap-2 text-sm font-medium text-slate-200">
+            Range
+            <select
+              className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+              onChange={(event) => onPresetChange(event.target.value as RangePreset)}
+              value={preset}
+            >
+              <option value="last-30">Last 30 days</option>
+              <option value="previous-30">Previous 30 days</option>
+              <option value="custom">Custom range</option>
+            </select>
+          </label>
+          {preset === "custom" ? (
+            <>
+              <label className="grid gap-2 text-sm font-medium text-slate-200">
+                Start date
+                <input
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                  onChange={(event) => onCustomStartChange(event.target.value)}
+                  type="date"
+                  value={customStart}
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-medium text-slate-200">
+                End date
+                <input
+                  className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                  onChange={(event) => onCustomEndChange(event.target.value)}
+                  type="date"
+                  value={customEnd}
+                />
+              </label>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function RevenueCards({ dashboard }: { dashboard: FounderDashboardData }) {
   const cards = [
     { label: "Active Subscribers", value: dashboard.revenue.activeSubscribers },
@@ -157,27 +246,24 @@ function RevenueCards({ dashboard }: { dashboard: FounderDashboardData }) {
 
 function OverviewCards({ dashboard }: { dashboard: FounderDashboardData }) {
   const cards = [
-    { label: "Reviews Started (tracked events)", value: dashboard.overview.reviewsStarted },
-    { label: "Reviews Completed (saved records)", value: dashboard.overview.reviewsCompleted },
-    { label: "Reviews Today", value: dashboard.overview.reviewsToday },
-    { label: "Reviews This Week", value: dashboard.overview.reviewsThisWeek },
-    { label: "Feedback Today", value: dashboard.overview.feedbackToday },
-    { label: "Open Feedback", value: dashboard.overview.openFeedback },
-    { label: "Resolved Feedback", value: dashboard.overview.resolvedFeedback },
-    { label: "Feedback Rate", value: `${dashboard.overview.feedbackRate}%` },
-    { label: "Share Rate", value: `${dashboard.overview.shareRate}%` },
-    { label: "Emails Collected", value: dashboard.overview.emailsCollected },
+    { label: "Reviews Started (raw events)", value: dashboard.overview.reviewsStarted },
+    { label: "Saved Reviews (raw records)", value: dashboard.overview.reviewsCompleted },
+    { label: "Open Feedback (range)", value: dashboard.overview.openFeedback },
+    { label: "Resolved Feedback (range)", value: dashboard.overview.resolvedFeedback },
+    { label: "Feedback Rate (raw records)", value: `${dashboard.overview.feedbackRate}%` },
+    { label: "Share Rate (raw events)", value: `${dashboard.overview.shareRate}%` },
+    { label: "Emails Collected (range)", value: dashboard.overview.emailsCollected },
     { label: "Repeat Visitor IDs (not users)", value: dashboard.overview.returningVisitors },
-    { label: "Repeat Review Visitor IDs", value: dashboard.overview.returningUsers },
-    { label: "Reviews per User", value: dashboard.overview.reviewsPerUser },
-    { label: "Average Reviews per Player", value: dashboard.overview.averageReviewsPerPlayer },
-    { label: "Weekly Active Players", value: dashboard.overview.weeklyActivePlayers },
-    { label: "Weekly Returning Players", value: dashboard.overview.weeklyReturningPlayers },
+    { label: "Repeat Review Visitor IDs (not users)", value: dashboard.overview.returningUsers },
+    { label: "Reviews per Visitor ID", value: dashboard.overview.reviewsPerUser },
+    { label: "Average Reviews per Visitor ID", value: dashboard.overview.averageReviewsPerPlayer },
+    { label: "Active Visitor IDs (raw, final 7 days)", value: dashboard.overview.weeklyActivePlayers },
+    { label: "Repeat Review Visitor IDs (final 7 days)", value: dashboard.overview.weeklyReturningPlayers },
     {
       label: "Average Reviews per Active Player",
       value: dashboard.overview.averageReviewsPerActivePlayer,
     },
-    { label: "Daily Challenge Attempts", value: dashboard.overview.dailyChallengeAttempts },
+    { label: "Daily Challenge Attempts (raw events)", value: dashboard.overview.dailyChallengeAttempts },
     {
       label: "Daily Challenge Completion Rate",
       value: `${dashboard.overview.dailyChallengeCompletionRate}%`,
@@ -207,20 +293,44 @@ function VerifiedUserCards({ dashboard }: { dashboard: FounderDashboardData }) {
   const cards = [
     { label: "Verified External Registrations", value: dashboard.verifiedUsers.registeredUsers },
     { label: "External Users with First Review", value: dashboard.verifiedUsers.firstReviewUsers },
-    { label: "External Users with 2+ Reviews", value: dashboard.verifiedUsers.repeatReviewUsers },
-    { label: "Verified Active Users (7 days, any authenticated event)", value: dashboard.verifiedUsers.recentlyActiveUsers },
+    { label: "External Users with Second Review", value: dashboard.verifiedUsers.secondReviewUsers },
+    { label: "7-Day Active Users", value: dashboard.verifiedUsers.recentlyActiveUsers },
     { label: "Anonymous Saved Reviews", value: dashboard.anonymousActivity.anonymousReviewRecords },
     { label: "Anonymous Visitor IDs", value: dashboard.anonymousActivity.anonymousVisitors },
+    { label: "Unknown Review Records", value: dashboard.unknownActivity.unknownReviewRecords },
+    { label: "Unknown Activity Records", value: dashboard.unknownActivity.unknownEvents },
+    { label: "Internal Review Records", value: dashboard.internalActivity.internalReviewRecords },
+    { label: "Internal Activity Records", value: dashboard.internalActivity.internalEvents },
   ];
 
   return (
+    <div className="grid gap-5">
     <Card className="border-primary/25 bg-primary/5 p-5 md:p-6">
       <CardTitle>Verified External User Growth</CardTitle>
-      <p className="mt-2 text-sm leading-6 text-slate-400">Excludes Admin-marked test accounts. Active users have any authenticated growth event in the last seven days; anonymous activity remains separate.</p>
+      <p className="mt-2 text-sm leading-6 text-slate-400">
+        {formatRangeLabel(dashboard.range)}. Excludes test and admin accounts. First and second
+        reviews are each counted only when that saved review falls in this range. 7-day activity
+        means a verified player used a product feature during the final seven days of the range.
+      </p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => <div key={card.label} className="rounded-xl border border-slate-800 bg-slate-950/48 p-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{card.label}</p><p className="mt-3 text-3xl font-semibold tracking-tight text-slate-50">{card.value}</p></div>)}
       </div>
     </Card>
+    <Card className="p-5 md:p-6">
+      <CardTitle>GA4 traffic</CardTitle>
+      <p className="mt-2 text-sm leading-6 text-slate-400">
+        GA4 is an external traffic source and is not used to calculate verified player growth.
+        A server-side GA4 connection is not configured.
+      </p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        {[
+          { label: "Sessions", value: dashboard.ga4.sessions ?? "--" },
+          { label: "Active Users", value: dashboard.ga4.activeUsers ?? "--" },
+          { label: "Engaged Sessions", value: dashboard.ga4.engagedSessions ?? "--" },
+        ].map((card) => <div key={card.label} className="rounded-xl border border-slate-800 bg-slate-950/48 p-4"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{card.label}</p><p className="mt-3 text-3xl font-semibold tracking-tight text-slate-50">{card.value}</p></div>)}
+      </div>
+    </Card>
+    </div>
   );
 }
 
@@ -385,4 +495,20 @@ function formatDate(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function getDateInputValue(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function formatRangeLabel(range: FounderDashboardData["range"]) {
+  const end = new Date(range.end);
+  end.setUTCDate(end.getUTCDate() - 1);
+  return `${formatDate(range.start)} to ${formatDate(end.toISOString())} (UTC)`;
+}
+
+function daysAgo(days: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - days);
+  return date;
 }

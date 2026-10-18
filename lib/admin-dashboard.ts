@@ -14,7 +14,17 @@ type GrowthEventRow = {
   user_agent: string | null;
 };
 
-type ProfileDashboardRow = { user_id: string; is_test_account: boolean };
+type ProfileDashboardRow = {
+  user_id: string;
+  is_test_account: boolean;
+  role: "user" | "admin" | null;
+  created_at: string;
+};
+
+export type DashboardDateRange = {
+  start: Date;
+  end: Date;
+};
 
 type SubscriptionDashboardRow = {
   created_at: string;
@@ -43,8 +53,17 @@ type FeedbackDashboardRow = {
 };
 
 export type FounderDashboardData = {
-  verifiedUsers: { registeredUsers: number; firstReviewUsers: number; repeatReviewUsers: number; recentlyActiveUsers: number };
+  range: { start: string; end: string };
+  verifiedUsers: {
+    registeredUsers: number;
+    firstReviewUsers: number;
+    secondReviewUsers: number;
+    recentlyActiveUsers: number;
+  };
   anonymousActivity: { anonymousReviewRecords: number; anonymousVisitors: number };
+  unknownActivity: { unknownReviewRecords: number; unknownEvents: number };
+  internalActivity: { internalReviewRecords: number; internalEvents: number };
+  ga4: { status: "not_connected"; sessions: null; activeUsers: null; engagedSessions: null };
   overview: {
     reviewsStarted: number;
     reviewsCompleted: number;
@@ -120,42 +139,43 @@ const browserLabels: BrowserName[] = ["Chrome", "Safari", "Edge", "Firefox", "Ot
 const deviceLabels: DeviceName[] = ["Desktop", "Mobile", "Tablet"];
 const gradeLabels: GradeBucket[] = ["A", "B", "C", "D"];
 
-export async function getFounderDashboardData(): Promise<FounderDashboardData> {
+export async function getFounderDashboardData(
+  range = getLastThirtyDayRange(new Date()),
+): Promise<FounderDashboardData> {
   const supabase = getAdminClient();
-  const now = new Date();
-  const todayStart = startOfUtcDay(now).toISOString();
-  const weekStart = startOfUtcWeek(now).toISOString();
+  const rangeEndAnchor = new Date(range.end.getTime() - 1);
+  const todayStart = startOfUtcDay(rangeEndAnchor).toISOString();
+  const weekStart = startOfUtcWeek(rangeEndAnchor).toISOString();
 
   const [
-    reviewsToday,
-    reviewsThisWeek,
-    totalReviews,
-    feedbackToday,
-    openFeedback,
-    resolvedFeedback,
-    totalFeedback,
+    allReviewsBeforeRangeEnd,
     emailsCollected,
-    reviewRows,
     feedbackRows,
     growthRows,
     subscriptionRows,
     profileRows,
   ] = await Promise.all([
-    countRows(supabase, reviewTable, { createdAfter: todayStart }),
-    countRows(supabase, reviewTable, { createdAfter: weekStart }),
-    countRows(supabase, reviewTable),
-    countRows(supabase, feedbackTable, { createdAfter: todayStart }),
-    countRows(supabase, feedbackTable, { status: "open" }),
-    countRows(supabase, feedbackTable, { status: "resolved" }),
-    countRows(supabase, feedbackTable),
-    countOptionalRows(supabase, emailCapturesTable),
-    listDashboardReviews(supabase),
-    listDashboardFeedback(supabase),
-    listGrowthEvents(supabase),
+    listDashboardReviews(supabase, { before: range.end }),
+    countRows(supabase, emailCapturesTable, range),
+    listDashboardFeedback(supabase, range),
+    listGrowthEvents(supabase, range),
     listSubscriptions(supabase),
     listDashboardProfiles(supabase),
   ]);
-  const verifiedUsers = buildVerifiedExternalGrowthMetrics({ now, profiles: profileRows, reviews: reviewRows, events: growthRows });
+  const reviewRows = filterRowsInRange(allReviewsBeforeRangeEnd, range);
+  const verifiedUsers = buildVerifiedExternalGrowthMetrics({
+    range,
+    profiles: profileRows,
+    reviews: allReviewsBeforeRangeEnd,
+    events: growthRows,
+  });
+  const totalReviews = reviewRows.length;
+  const reviewsToday = reviewRows.filter((row) => row.created_at >= todayStart).length;
+  const reviewsThisWeek = reviewRows.filter((row) => row.created_at >= weekStart).length;
+  const feedbackToday = feedbackRows.filter((row) => row.created_at >= todayStart).length;
+  const openFeedback = feedbackRows.filter((row) => row.status === "open").length;
+  const resolvedFeedback = feedbackRows.filter((row) => row.status === "resolved").length;
+  const totalFeedback = feedbackRows.length;
 
   const averageConfidence = average(
     reviewRows
@@ -179,8 +199,23 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
   );
 
   return {
-    verifiedUsers: { registeredUsers: verifiedUsers.registeredUsers, firstReviewUsers: verifiedUsers.firstReviewUsers, repeatReviewUsers: verifiedUsers.repeatReviewUsers, recentlyActiveUsers: verifiedUsers.recentlyActiveUsers },
+    range: { start: range.start.toISOString(), end: range.end.toISOString() },
+    verifiedUsers: {
+      registeredUsers: verifiedUsers.registeredUsers,
+      firstReviewUsers: verifiedUsers.firstReviewUsers,
+      secondReviewUsers: verifiedUsers.secondReviewUsers,
+      recentlyActiveUsers: verifiedUsers.recentlyActiveUsers,
+    },
     anonymousActivity: { anonymousReviewRecords: verifiedUsers.anonymousReviewRecords, anonymousVisitors: verifiedUsers.anonymousVisitors },
+    unknownActivity: {
+      unknownReviewRecords: verifiedUsers.unknownReviewRecords,
+      unknownEvents: verifiedUsers.unknownEvents,
+    },
+    internalActivity: {
+      internalReviewRecords: verifiedUsers.internalReviewRecords,
+      internalEvents: verifiedUsers.internalEvents,
+    },
+    ga4: { status: "not_connected", sessions: null, activeUsers: null, engagedSessions: null },
     overview: {
       reviewsStarted: growthRows.filter((row) => row.event_type === "review_started").length,
       reviewsCompleted: totalReviews,
@@ -204,29 +239,17 @@ export async function getFounderDashboardData(): Promise<FounderDashboardData> {
       averageReviewsPerActivePlayer: reviewsPerActivePlayer(weeklyGrowthRows, weeklyActivePlayers),
       dailyChallengeAttempts,
       dailyChallengeCompletionRate: percentage(dailyChallengeCompletions.length, dailyChallengeAttempts),
-      averageStreak: averageDailyChallengeStreak(dailyChallengeCompletions, now),
+      averageStreak: averageDailyChallengeStreak(dailyChallengeCompletions, rangeEndAnchor),
       averageGrade: averageGrade(reviewRows),
       averageConfidence: Math.round(averageConfidence),
     },
-    revenue: buildRevenueMetrics(subscriptionRows, todayStart),
+    revenue: buildRevenueMetrics(subscriptionRows, range.start.toISOString()),
     usefulParts,
     recentActivity: buildRecentActivity(reviewRows, feedbackRows),
     browserBreakdown,
     deviceBreakdown,
     gradeDistribution,
   };
-}
-
-async function countOptionalRows(
-  supabase: ReturnType<typeof getAdminClient>,
-  table: string,
-) {
-  try {
-    return await countRows(supabase, table);
-  } catch (error) {
-    console.info(`[Kevixo dashboard] ${table} is not available yet`, error);
-    return 0;
-  }
 }
 
 function getAdminClient() {
@@ -248,16 +271,14 @@ function getAdminClient() {
 async function countRows(
   supabase: ReturnType<typeof getAdminClient>,
   table: string,
-  filters: { createdAfter?: string; status?: FeedbackStatus } = {},
+  range?: DashboardDateRange,
 ) {
   let request = supabase.from(table).select("id", { count: "exact", head: true });
 
-  if (filters.createdAfter) {
-    request = request.gte("created_at", filters.createdAfter);
-  }
-
-  if (filters.status) {
-    request = request.eq("status", filters.status);
+  if (range) {
+    request = request
+      .gte("created_at", range.start.toISOString())
+      .lt("created_at", range.end.toISOString());
   }
 
   const { count, error } = await request;
@@ -269,118 +290,212 @@ async function countRows(
   return count ?? 0;
 }
 
-async function listDashboardReviews(supabase: ReturnType<typeof getAdminClient>) {
-  const { data, error } = await supabase
-    .from(reviewTable)
-    .select("created_at, review_id, grade, confidence, user_agent, user_id")
-    .order("created_at", { ascending: false })
-    .limit(500)
-    .returns<ReviewDashboardRow[]>();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data ?? [];
+async function listDashboardReviews(
+  supabase: ReturnType<typeof getAdminClient>,
+  filters: { before: Date },
+) {
+  return fetchAllDashboardPages<ReviewDashboardRow>((from, to) =>
+    supabase
+      .from(reviewTable)
+      .select("created_at, review_id, grade, confidence, user_agent, user_id")
+      .lt("created_at", filters.before.toISOString())
+      .order("created_at", { ascending: true })
+      .order("review_id", { ascending: true })
+      .range(from, to)
+      .returns<ReviewDashboardRow[]>(),
+  );
 }
 
-async function listDashboardFeedback(supabase: ReturnType<typeof getAdminClient>) {
-  const { data, error } = await supabase
-    .from(feedbackTable)
-    .select("created_at, status, useful_part, review_id, user_agent, browser")
-    .order("created_at", { ascending: false })
-    .limit(500)
-    .returns<FeedbackDashboardRow[]>();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data ?? [];
+async function listDashboardFeedback(
+  supabase: ReturnType<typeof getAdminClient>,
+  range: DashboardDateRange,
+) {
+  return fetchAllDashboardPages<FeedbackDashboardRow>((from, to) =>
+    supabase
+      .from(feedbackTable)
+      .select("created_at, status, useful_part, review_id, user_agent, browser")
+      .gte("created_at", range.start.toISOString())
+      .lt("created_at", range.end.toISOString())
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<FeedbackDashboardRow[]>(),
+  );
 }
 
-async function listGrowthEvents(supabase: ReturnType<typeof getAdminClient>) {
-  const { data, error } = await supabase
-    .from(growthEventsTable)
-    .select("created_at, event_type, review_id, visitor_id, user_id, user_agent")
-    .order("created_at", { ascending: false })
-    .limit(1000)
-    .returns<GrowthEventRow[]>();
-
-  if (error) {
-    console.info("[Kevixo dashboard] growth_events is not available yet", error.message);
-    return [];
-  }
-
-  return data ?? [];
+async function listGrowthEvents(
+  supabase: ReturnType<typeof getAdminClient>,
+  range: DashboardDateRange,
+) {
+  return fetchAllDashboardPages<GrowthEventRow>((from, to) =>
+    supabase
+      .from(growthEventsTable)
+      .select("created_at, event_type, review_id, visitor_id, user_id, user_agent")
+      .gte("created_at", range.start.toISOString())
+      .lt("created_at", range.end.toISOString())
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<GrowthEventRow[]>(),
+  );
 }
 
 async function listDashboardProfiles(supabase: ReturnType<typeof getAdminClient>) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("user_id, is_test_account")
-    .returns<ProfileDashboardRow[]>();
-
-  if (error) throw new Error(error.message);
-  return data ?? [];
+  return fetchAllDashboardPages<ProfileDashboardRow>((from, to) =>
+    supabase
+      .from("profiles")
+      .select("user_id, is_test_account, role, created_at")
+      .order("created_at", { ascending: true })
+      .order("user_id", { ascending: true })
+      .range(from, to)
+      .returns<ProfileDashboardRow[]>(),
+  );
 }
 
-export function buildVerifiedExternalGrowthMetrics({
-  events,
-  now,
-  profiles,
-  reviews,
-}: {
-  now: Date;
-  profiles: Array<Pick<ProfileDashboardRow, "user_id" | "is_test_account">>;
-  reviews: Array<Pick<ReviewDashboardRow, "user_id">>;
-  events: Array<Pick<GrowthEventRow, "created_at" | "user_id" | "visitor_id">>;
-}) {
-  const externalUserIds = new Set(profiles.filter((profile) => !profile.is_test_account).map((profile) => profile.user_id));
-  const reviewCounts = new Map<string, number>();
-  const anonymousVisitors = new Set<string>();
-  const recentlyActiveUsers = new Set<string>();
-  const sevenDaysAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+export async function fetchAllDashboardPages<T>(
+  fetchPage: (from: number, to: number) => PromiseLike<{
+    data: T[] | null;
+    error: { message: string } | null;
+  }>,
+  pageSize = 1_000,
+) {
+  const rows: T[] = [];
 
-  for (const review of reviews) {
-    if (review.user_id && externalUserIds.has(review.user_id)) {
-      reviewCounts.set(review.user_id, (reviewCounts.get(review.user_id) ?? 0) + 1);
-    }
-  }
-  for (const event of events) {
-    if (!event.user_id && event.visitor_id) anonymousVisitors.add(event.visitor_id);
-    if (event.user_id && externalUserIds.has(event.user_id) && new Date(event.created_at).getTime() >= sevenDaysAgo) {
-      recentlyActiveUsers.add(event.user_id);
-    }
-  }
-  return {
-    registeredUsers: externalUserIds.size,
-    firstReviewUsers: reviewCounts.size,
-    repeatReviewUsers: Array.from(reviewCounts.values()).filter((count) => count >= 2).length,
-    recentlyActiveUsers: recentlyActiveUsers.size,
-    anonymousReviewRecords: reviews.filter((review) => !review.user_id).length,
-    anonymousVisitors: anonymousVisitors.size,
-  };
-}
-
-async function listSubscriptions(supabase: ReturnType<typeof getAdminClient>) {
-  try {
-    const { data, error } = await supabase
-      .from(subscriptionsTable)
-      .select("created_at, updated_at, status, plan, current_period_end")
-      .order("created_at", { ascending: false })
-      .limit(1000)
-      .returns<SubscriptionDashboardRow[]>();
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await fetchPage(from, from + pageSize - 1);
 
     if (error) {
       throw new Error(error.message);
     }
 
-    return data ?? [];
-  } catch (error) {
-    console.info("[Kevixo dashboard] subscriptions is not available yet", error);
-    return [];
+    const page = data ?? [];
+    rows.push(...page);
+
+    if (page.length < pageSize) {
+      return rows;
+    }
   }
+}
+
+export function buildVerifiedExternalGrowthMetrics({
+  events,
+  range,
+  profiles,
+  reviews,
+}: {
+  range: DashboardDateRange;
+  profiles: Array<Pick<ProfileDashboardRow, "user_id" | "is_test_account" | "role" | "created_at">>;
+  reviews: Array<Pick<ReviewDashboardRow, "created_at" | "user_id">>;
+  events: Array<Pick<GrowthEventRow, "created_at" | "event_type" | "user_id" | "visitor_id">>;
+}) {
+  const profilesByUserId = new Map(profiles.map((profile) => [profile.user_id, profile]));
+  const externalUserIds = new Set(
+    profiles
+      .filter((profile) => !profile.is_test_account && profile.role !== "admin")
+      .map((profile) => profile.user_id),
+  );
+  const anonymousVisitors = new Set<string>();
+  const recentlyActiveUsers = new Set<string>();
+  const reviewsByExternalUser = new Map<string, Array<Pick<ReviewDashboardRow, "created_at" | "user_id">>>();
+  const activeWindowStart = new Date(Math.max(range.start.getTime(), range.end.getTime() - 7 * 24 * 60 * 60 * 1000));
+  let anonymousReviewRecords = 0;
+  let unknownReviewRecords = 0;
+  let internalReviewRecords = 0;
+  let unknownEvents = 0;
+  let internalEvents = 0;
+
+  for (const review of reviews) {
+    if (!isInRange(review.created_at, range)) {
+      continue;
+    }
+
+    if (!review.user_id) {
+      anonymousReviewRecords += 1;
+      continue;
+    }
+
+    if (externalUserIds.has(review.user_id)) continue;
+
+    if (profilesByUserId.has(review.user_id)) {
+      internalReviewRecords += 1;
+    } else {
+      unknownReviewRecords += 1;
+    }
+  }
+
+  for (const review of reviews) {
+    if (!review.user_id || !externalUserIds.has(review.user_id) || new Date(review.created_at) >= range.end) {
+      continue;
+    }
+
+    const userReviews = reviewsByExternalUser.get(review.user_id) ?? [];
+    userReviews.push(review);
+    reviewsByExternalUser.set(review.user_id, userReviews);
+  }
+
+  const firstReviewUsers = new Set<string>();
+  const secondReviewUsers = new Set<string>();
+
+  for (const [userId, userReviews] of reviewsByExternalUser) {
+    userReviews.sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime());
+    if (userReviews[0] && isInRange(userReviews[0].created_at, range)) firstReviewUsers.add(userId);
+    if (userReviews[1] && isInRange(userReviews[1].created_at, range)) secondReviewUsers.add(userId);
+  }
+
+  for (const event of events) {
+    if (!isInRange(event.created_at, range)) {
+      continue;
+    }
+
+    if (!event.user_id) {
+      if (event.visitor_id) {
+        anonymousVisitors.add(event.visitor_id);
+      } else {
+        unknownEvents += 1;
+      }
+      continue;
+    }
+
+    if (externalUserIds.has(event.user_id)) {
+      if (isProductActivityEvent(event.event_type) && new Date(event.created_at) >= activeWindowStart) {
+        recentlyActiveUsers.add(event.user_id);
+      }
+      continue;
+    }
+
+    if (profilesByUserId.has(event.user_id)) {
+      internalEvents += 1;
+    } else {
+      unknownEvents += 1;
+    }
+  }
+
+  return {
+    registeredUsers: profiles.filter(
+      (profile) => externalUserIds.has(profile.user_id) && isInRange(profile.created_at, range),
+    ).length,
+    firstReviewUsers: firstReviewUsers.size,
+    secondReviewUsers: secondReviewUsers.size,
+    recentlyActiveUsers: recentlyActiveUsers.size,
+    anonymousReviewRecords,
+    anonymousVisitors: anonymousVisitors.size,
+    unknownReviewRecords,
+    unknownEvents,
+    internalReviewRecords,
+    internalEvents,
+  };
+}
+
+async function listSubscriptions(supabase: ReturnType<typeof getAdminClient>) {
+  return fetchAllDashboardPages<SubscriptionDashboardRow>((from, to) =>
+    supabase
+      .from(subscriptionsTable)
+      .select("created_at, updated_at, status, plan, current_period_end")
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+      .returns<SubscriptionDashboardRow[]>(),
+  );
 }
 
 function buildRevenueMetrics(rows: SubscriptionDashboardRow[], todayStart: string) {
@@ -705,6 +820,73 @@ function currentDailyStreak(completedDays: string[], todayKey: string) {
   }
 
   return streak;
+}
+
+export function getLastThirtyDayRange(now: Date): DashboardDateRange {
+  const end = startOfUtcDay(new Date(now));
+  end.setUTCDate(end.getUTCDate() + 1);
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - 30);
+  return { start, end };
+}
+
+export function getPreviousThirtyDayRange(now: Date): DashboardDateRange {
+  const current = getLastThirtyDayRange(now);
+  const end = new Date(current.start);
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - 30);
+  return { start, end };
+}
+
+export function createUtcDateRange(startDate: string, endDate: string): DashboardDateRange | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    return null;
+  }
+
+  const start = new Date(`${startDate}T00:00:00.000Z`);
+  const end = new Date(`${endDate}T00:00:00.000Z`);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return null;
+  }
+
+  if (
+    start.toISOString().slice(0, 10) !== startDate ||
+    end.toISOString().slice(0, 10) !== endDate
+  ) {
+    return null;
+  }
+
+  end.setUTCDate(end.getUTCDate() + 1);
+
+  if (start >= end) {
+    return null;
+  }
+
+  return { start, end };
+}
+
+function isInRange(value: string, range: DashboardDateRange) {
+  const timestamp = new Date(value).getTime();
+  return timestamp >= range.start.getTime() && timestamp < range.end.getTime();
+}
+
+function isProductActivityEvent(eventType: string) {
+  return [
+    "review_viewed",
+    "review_started",
+    "analyze_succeeded",
+    "analyze_failed",
+    "review_persisted",
+    "review_persist_failed",
+    "review_completed",
+    "daily_challenge_attempted",
+    "daily_challenge_completed",
+  ].includes(eventType);
+}
+
+function filterRowsInRange<T extends { created_at: string }>(rows: T[], range: DashboardDateRange) {
+  return rows.filter((row) => isInRange(row.created_at, range));
 }
 
 function getUtcDateKey(date: Date) {
