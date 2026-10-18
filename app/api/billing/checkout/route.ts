@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getPaddleCheckoutConfiguration } from "@/lib/paddle-admin";
 import { getUserFromRequest } from "@/lib/supabase-auth";
 import { isCoachUser } from "@/lib/subscription";
 
@@ -15,7 +14,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, alreadySubscribed: true });
     }
 
-    return NextResponse.json({ ok: true, checkout: getPaddleCheckoutConfiguration(user) });
+    return NextResponse.json(
+      { ok: false, error: "New Coach subscriptions are not available yet." },
+      { status: 503 },
+    );
   } catch (error) {
     return NextResponse.json(
       {

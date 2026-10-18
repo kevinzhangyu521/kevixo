@@ -187,10 +187,32 @@ function testServerSideCheckoutAndPortalBoundaries() {
 
   assert(/getUserFromRequest\(request\)/.test(checkout), "Expected checkout configuration to require authentication.");
   assert(/createPaddlePortalUrl\(user\.id\)/.test(portal), "Expected portal access to use only the authenticated user ID.");
-  assert(/Payment received\. Your Coach status will update after secure confirmation\./.test(pricing), "Expected browser checkout completion not to grant Coach.");
+  assert(/New subscriptions are not currently available/.test(pricing), "Expected pricing to explain that new subscriptions are paused.");
   assert(/const body = await request\.text\(\)/.test(webhook), "Expected webhook signature verification to use the raw request body.");
   assert(/request\.headers\.get\("paddle-signature"\)/.test(webhook), "Expected webhook to require Paddle's signature header.");
   assert(/verifyCheckoutBinding\(customBinding, customUserId/.test(paddleAdmin), "Expected lifecycle attribution to verify custom data bindings.");
+}
+
+function testPausesNewCoachSalesWithoutAffectingSubscriberBilling() {
+  const checkout = readFileSync("app/api/billing/checkout/route.ts", "utf8");
+  const portal = readFileSync("app/api/billing/portal/route.ts", "utf8");
+  const pricing = readFileSync("app/pricing/page.tsx", "utf8");
+  const review = readFileSync("app/review/page.tsx", "utf8");
+  const profile = readFileSync("app/profile/page.tsx", "utf8");
+  const homepage = readFileSync("app/page.tsx", "utf8");
+  const header = readFileSync("components/site-header.tsx", "utf8");
+
+  assert(
+    /New Coach subscriptions are not available yet\./.test(checkout),
+    "Expected the checkout route to pause new Coach subscriptions.",
+  );
+  assert(!/getPaddleCheckoutConfiguration/.test(checkout), "Expected no checkout configuration while Coach sales are paused.");
+  assert(/createPaddlePortalUrl\(user\.id\)/.test(portal), "Expected existing subscribers to retain billing portal access.");
+  assert(!/Unlimited Hand Reviews|Personal Leak Detection|Monthly Improvement Reports/.test(pricing), "Expected pricing to remove unfulfilled Coach promises.");
+  assert(!/Coach is being built|Available with Coach/.test(review), "Expected review results to remove stale Coach gating copy.");
+  assert(!/Coach Timeline|Monthly Coach Report|Upgrade to Coach/.test(profile), "Expected profile to remove unavailable Coach upgrade promises.");
+  assert(!/Weekly coaching reports sent by email|Kevixo Coach is the paid plan/.test(homepage), "Expected homepage to remove unfulfilled Coach promises.");
+  assert(/Plans/.test(header) && !/>Upgrade</.test(header), "Expected navigation to stop promoting an unavailable upgrade.");
 }
 
 testRestrictsCoachAccessToActiveStates();
@@ -203,5 +225,6 @@ testValidatesSubscriptionIdentityWithoutEmailFallback();
 testKeepsTheLatestPaddleSubscriptionForAdmin();
 testDatabaseIdempotencySchema();
 testServerSideCheckoutAndPortalBoundaries();
+testPausesNewCoachSalesWithoutAffectingSubscriberBilling();
 
 console.log("paddle billing tests passed");

@@ -49,10 +49,9 @@ const benefits = [
 ];
 
 const proBenefits = [
-  "Cloud review history across devices",
-  "Deeper leak tracking by position and street",
-  "Weekly coaching reports sent by email",
-  "Priority support for more hand history formats",
+  "Review hands with practical coaching feedback",
+  "Save your reviews across devices with a free account",
+  "Use Daily practice, progress, and personal training tools",
 ];
 
 const faqs = [
@@ -84,7 +83,7 @@ const faqs = [
   {
     question: "What is Kevixo Coach?",
     answer:
-      "Kevixo Coach is the paid plan for players who want deeper history, sharper trends, and more advanced coaching reports.",
+      "Coach subscriptions are not currently available to new players. Kevixo's hand review and study tools remain available on the Free plan.",
   },
 ];
 
@@ -412,18 +411,18 @@ function KevixoProSection() {
       <Card className="border-primary/25 bg-primary/5 p-6 md:p-8">
         <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
           <div>
-              <CardTitle>Kevixo Coach</CardTitle>
+              <CardTitle>Study with Kevixo</CardTitle>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-50 md:text-5xl">
-              For players who want their study to compound.
+              Build a repeatable study habit.
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-300">
-              Coach is for players who want deeper history, sharper trends, and more personal
-              coaching over time.
+              Save your reviews, practice decisions, and use your progress to keep working on the
+              next spot that matters.
             </p>
             <div className="mt-6">
               <Button asChild>
                 <Link href="/pricing">
-                  View Coach
+                  Explore free tools
                 </Link>
               </Button>
             </div>

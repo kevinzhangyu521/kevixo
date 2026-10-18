@@ -9,7 +9,7 @@ const productLinks = [
   {
     label: "Pricing",
     href: "/pricing",
-    description: "Compare free review tools with Kevixo Coach.",
+    description: "See current plan availability and the tools available today.",
   },
   {
     label: "Poker Hand Analyzer",

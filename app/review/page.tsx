@@ -662,7 +662,7 @@ function ReviewConversionFlow({
   )}`;
 
   return (
-    <section className="fade-in mt-6 grid gap-5" aria-label="Save review and Coach preview">
+    <section className="fade-in mt-6 grid gap-5" aria-label="Save review and next steps">
       {isAccountConnected ? (
         <Card className="border-emerald-400/20 bg-emerald-400/5 p-5 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -707,41 +707,20 @@ function ReviewConversionFlow({
       <Card className="border-slate-800 bg-slate-950/58 p-5 md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <CardTitle>Coach Preview</CardTitle>
+            <CardTitle>Keep building your study habit</CardTitle>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              Kevixo Coach is being built for players who want long-term study structure after each
-              hand review.
+              Save your reviews, use Daily practice, and revisit your progress whenever you want to
+              work on the next decision.
             </p>
           </div>
           <Button asChild variant="secondary">
-            <Link href="/pricing">Explore Coach</Link>
+            <Link href="/progress">View Progress</Link>
           </Button>
-        </div>
-
-        <div className="mt-5 grid gap-3 md:grid-cols-4">
-          {coachPreviewItems.map((item) => (
-            <div
-              key={item}
-              className="rounded-xl border border-slate-800 bg-slate-950/48 p-4"
-            >
-              <p className="text-sm font-semibold leading-6 text-slate-100">{item}</p>
-              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                🔒 Available with Coach
-              </p>
-            </div>
-          ))}
         </div>
       </Card>
     </section>
   );
 }
-
-const coachPreviewItems = [
-  "Monthly AI Coach Report",
-  "Recurring Leak Detection",
-  "Long-term Progress Trends",
-  "Personalized Study Plan",
-];
 
 function SaveReviewsCard({
   email,

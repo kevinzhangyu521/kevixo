@@ -172,7 +172,7 @@ export function SiteHeader({
               href="/pricing"
               className="whitespace-nowrap rounded-xl border border-primary/35 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:bg-primary/15 active:scale-[0.98]"
             >
-              Upgrade
+              Plans
             </Link>
             <HeaderAccountActions
               isLoggedIn={isLoggedIn}
@@ -216,7 +216,7 @@ export function SiteHeader({
 
           <div className="grid gap-2 rounded-2xl border border-slate-800 bg-slate-950/80 p-3">
             <MobileActionLink href="/pricing" onNavigate={() => setIsMobileMenuOpen(false)}>
-              Upgrade
+              Plans
             </MobileActionLink>
             <HeaderAccountActions
               isLoggedIn={isLoggedIn}

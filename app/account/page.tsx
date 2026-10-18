@@ -345,7 +345,7 @@ export default function AccountPage() {
                   </Button>
                 ) : (
                   <Button asChild>
-                    <Link href="/pricing">View Pricing</Link>
+                    <Link href="/pricing">View plan availability</Link>
                   </Button>
                 )}
               </div>

@@ -21,7 +21,7 @@ export default function ProfilePage() {
     const token = await getCurrentAccessToken();
 
     if (!token) {
-      setBillingStatus("Sign in to manage Coach and billing.");
+      setBillingStatus("Sign in to view your plan and manage an existing subscription.");
       return;
     }
 
@@ -158,7 +158,7 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_1fr]">
+        <div className="mt-5">
           <BillingCard
             billingStatus={billingStatus}
             isBillingLoading={isBillingLoading}
@@ -166,7 +166,6 @@ export default function ProfilePage() {
             onManageBilling={openBillingPortal}
             subscription={subscription}
           />
-          <CoachAccessCard isCoach={isCoach} />
         </div>
 
         <Card className="mt-5 p-5 md:p-6">
@@ -240,6 +239,8 @@ function BillingCard({
   onManageBilling: () => void;
   subscription: Subscription | null;
 }) {
+  const canManageSubscription = Boolean(subscription?.paddleCustomerId);
+
   return (
     <Card className="p-5 md:p-6">
       <CardTitle>Billing</CardTitle>
@@ -252,14 +253,14 @@ function BillingCard({
         />
       </div>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        {isCoach ? (
+        {canManageSubscription ? (
           <Button onClick={onManageBilling} disabled={isBillingLoading}>
             {isBillingLoading ? "Opening..." : "Manage Subscription"}
           </Button>
         ) : (
-          <Button asChild>
-            <Link href="/pricing">Upgrade to Coach</Link>
-          </Button>
+          <p className="text-sm leading-6 text-slate-400">
+            New Coach subscriptions are not currently available. Your free study tools remain available.
+          </p>
         )}
         {isCoach ? (
           <Button onClick={onManageBilling} disabled={isBillingLoading} variant="secondary">
@@ -268,30 +269,6 @@ function BillingCard({
         ) : null}
       </div>
       <p className="mt-4 text-sm leading-6 text-slate-400">{billingStatus}</p>
-    </Card>
-  );
-}
-
-function CoachAccessCard({ isCoach }: { isCoach: boolean }) {
-  const features = ["Monthly Coach Report", "Coach Timeline", "Full Historical Progress"];
-
-  return (
-    <Card className="p-5 md:p-6">
-      <CardTitle>Coach Features</CardTitle>
-      <p className="mt-3 text-sm leading-6 text-slate-400">
-        Coach is designed for long-term improvement. Free Kevixo remains available for hand review,
-        daily practice, and weekly progress.
-      </p>
-      <div className="mt-5 grid gap-3">
-        {features.map((feature) => (
-          <div
-            key={feature}
-            className="rounded-xl border border-slate-800 bg-slate-950/48 px-4 py-3 text-sm font-medium text-slate-200"
-          >
-            {isCoach ? feature : `${feature} - Available in Kevixo Coach`}
-          </div>
-        ))}
-      </div>
     </Card>
   );
 }
