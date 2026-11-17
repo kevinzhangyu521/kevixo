@@ -188,7 +188,7 @@ function testServerSideCheckoutAndPortalBoundaries() {
   assert(/getUserFromRequest\(request\)/.test(checkout), "Expected checkout configuration to require authentication.");
   assert(/createPaddlePortalUrl\(user\.id, action\)/.test(portal), "Expected portal access to use only the authenticated user ID.");
   assert(!/customer[_I]d|subscription[_I]d/.test(portal), "Expected the portal route not to accept customer or subscription IDs.");
-  assert(/Checkout remains closed/.test(pricing), "Expected pricing to explain that checkout remains closed by default.");
+  assert(/Checkout Temporarily Closed/.test(pricing), "Expected pricing to keep Checkout closed for ordinary users.");
   assert(/const body = await request\.text\(\)/.test(webhook), "Expected webhook signature verification to use the raw request body.");
   assert(/request\.headers\.get\("paddle-signature"\)/.test(webhook), "Expected webhook to require Paddle's signature header.");
   assert(/verifyCheckoutBinding\(customBinding, customUserId/.test(paddleAdmin), "Expected lifecycle attribution to verify custom data bindings.");

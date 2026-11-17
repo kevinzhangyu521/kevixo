@@ -6,7 +6,11 @@ import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders, getCurrentAccessToken } from "@/lib/auth-client";
-import { isCoachCheckoutEnabled } from "@/lib/coach-checkout";
+import {
+  getCoachCheckoutEventState,
+  getCoachCheckoutFailureState,
+  isCoachCheckoutEnabled,
+} from "@/lib/coach-checkout";
 import { saveGrowthEvent } from "@/lib/growth-client";
 
 type PaddleCheckoutConfiguration = {
@@ -35,15 +39,17 @@ declare global {
 }
 
 const freeFeatures = [
-  "Hand reviews with practical AI feedback",
-  "Saved review history when you sign in",
-  "Daily practice, progress, and personal training tools",
+  "Full AI hand analysis with complete results",
+  "Cloud-saved hand review history when you sign in",
+  "Leak Tracker, Progress, Daily, and Training",
+  "No monthly analysis limit is currently enforced",
 ];
 
-const coachPreparation = [
+const coachFeatures = [
   "Everything currently available in Free",
-  "Coach benefits will be finalized before checkout reopens",
-  "Existing subscribers can continue managing billing from their account",
+  "Coach membership recognized across Kevixo",
+  "Unlimited analysis entitlement when Free limits are enabled",
+  "Paddle Portal for payments, billing, and cancellation",
 ];
 
 const globalCheckoutEnabled = isCoachCheckoutEnabled(process.env.NEXT_PUBLIC_COACH_CHECKOUT_ENABLED);
@@ -53,7 +59,7 @@ export default function PricingPage() {
   const [status, setStatus] = useState(
     globalCheckoutEnabled
       ? "Upgrade when you are ready for long-term coaching."
-      : "Checkout remains closed while the Coach benefits are finalized.",
+      : "Checkout is currently available only to approved test accounts.",
   );
   const [isLoading, setIsLoading] = useState(false);
 
@@ -108,6 +114,7 @@ export default function PricingPage() {
       if (!response.ok || !payload.ok) throw new Error(payload.error ?? "Checkout could not be started.");
       if (payload.alreadySubscribed) {
         setStatus("Your Coach subscription is already active.");
+        setIsLoading(false);
         return;
       }
       if (!payload.checkout) throw new Error("Checkout could not be prepared.");
@@ -115,24 +122,28 @@ export default function PricingPage() {
       const paddle = await loadPaddle();
       paddle.Environment.set(payload.checkout.environment);
       paddle.Initialize({ token: payload.checkout.clientToken });
+      let paymentCompleted = false;
       paddle.Checkout.open({
         items: [{ priceId: payload.checkout.priceId, quantity: 1 }],
         customer: { email: payload.checkout.customerEmail },
         customData: payload.checkout.customData,
         eventCallback: (event) => {
+          const nextState = getCoachCheckoutEventState(event.name, paymentCompleted);
+          if (!nextState) return;
+
+          paymentCompleted = nextState.paymentCompleted;
+          setIsLoading(nextState.isLoading);
+          setStatus(nextState.status);
           if (event.name === "checkout.completed") {
             void saveGrowthEvent("checkout_completed");
-            setStatus("Payment received. Your Coach status will update after secure confirmation.");
-          }
-          if (event.name === "checkout.closed") {
-            setStatus("Checkout closed. Your Free plan is unchanged.");
           }
         },
       });
       void saveGrowthEvent("checkout_started");
     } catch (error) {
-      setStatus(getFriendlyCheckoutStatus(error));
-      setIsLoading(false);
+      const failureState = getCoachCheckoutFailureState(error);
+      setStatus(failureState.status);
+      setIsLoading(failureState.isLoading);
     }
   }
 
@@ -143,14 +154,14 @@ export default function PricingPage() {
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Kevixo plans</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 md:text-6xl">Study poker decisions with Kevixo</h1>
-          <p className="mt-5 text-base leading-7 text-slate-400 md:text-lg">All currently available hand review and study tools remain free to use.</p>
+          <p className="mt-5 text-base leading-7 text-slate-400 md:text-lg">Free currently includes every available study tool. Monthly Free analysis limits are not enabled.</p>
         </div>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-2">
+        <div className="mt-10 grid items-stretch gap-5 lg:grid-cols-2 lg:grid-rows-[auto_auto_auto_1fr_auto]">
           <PricingCard
             title="Free"
             price="$0"
-            description="Use Kevixo&apos;s available review and study tools at no cost."
+            description="Use every currently available analysis and study tool at no cost."
             features={freeFeatures}
             action={<Button asChild variant="secondary"><Link href="/review">Use Kevixo Free</Link></Button>}
           />
@@ -158,8 +169,8 @@ export default function PricingPage() {
             highlighted
             title="Coach"
             price="$9.99/month"
-            description="The original Coach checkout is prepared but remains closed until paid benefits are confirmed."
-            features={coachPreparation}
+            description="Everything in Free, plus Coach membership and unlimited analysis entitlement when Free limits are enabled."
+            features={coachFeatures}
             action={
               <Button onClick={startCheckout} disabled={!checkoutEnabled || isLoading}>
                 {!checkoutEnabled ? "Checkout Temporarily Closed" : isLoading ? "Opening Checkout..." : "Upgrade to Kevixo Coach"}
@@ -171,15 +182,6 @@ export default function PricingPage() {
       </section>
     </main>
   );
-}
-
-function getFriendlyCheckoutStatus(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  const normalizedMessage = message.toLowerCase();
-  if (normalizedMessage.includes("paddle") || normalizedMessage.includes("not configured")) {
-    return "Checkout is not available yet. Please try again later.";
-  }
-  return message || "Checkout could not be started.";
 }
 
 function loadPaddle() {
@@ -203,14 +205,14 @@ function PricingCard({ action, description, features, highlighted = false, price
   title: string;
 }) {
   return (
-    <Card className={["p-6 md:p-7", highlighted ? "border-primary/35 bg-primary/5" : ""].join(" ")}>
+    <Card className={["flex h-full flex-col p-6 md:p-7 lg:row-span-5 lg:grid lg:grid-rows-subgrid", highlighted ? "border-primary/35 bg-primary/5" : ""].join(" ")}>
       <CardTitle>{title}</CardTitle>
       <p className="mt-4 text-4xl font-semibold tracking-tight text-slate-50">{price}</p>
       <p className="mt-3 text-sm leading-6 text-slate-400">{description}</p>
-      <div className="mt-6 grid gap-3">
+      <div className="mt-6 grid content-start gap-3 lg:mt-6">
         {features.map((feature) => <div key={feature} className="rounded-xl border border-slate-800 bg-slate-950/48 px-4 py-3 text-sm font-medium text-slate-200">{feature}</div>)}
       </div>
-      <div className="mt-7">{action}</div>
+      <div className="mt-auto pt-7 lg:mt-0">{action}</div>
     </Card>
   );
 }
