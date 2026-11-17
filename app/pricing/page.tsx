@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -46,15 +46,41 @@ const coachPreparation = [
   "Existing subscribers can continue managing billing from their account",
 ];
 
-const checkoutEnabled = isCoachCheckoutEnabled(process.env.NEXT_PUBLIC_COACH_CHECKOUT_ENABLED);
+const globalCheckoutEnabled = isCoachCheckoutEnabled(process.env.NEXT_PUBLIC_COACH_CHECKOUT_ENABLED);
 
 export default function PricingPage() {
+  const [checkoutEnabled, setCheckoutEnabled] = useState(globalCheckoutEnabled);
   const [status, setStatus] = useState(
-    checkoutEnabled
+    globalCheckoutEnabled
       ? "Upgrade when you are ready for long-term coaching."
       : "Checkout remains closed while the Coach benefits are finalized.",
   );
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (globalCheckoutEnabled) return;
+
+    let cancelled = false;
+    void (async () => {
+      const token = await getCurrentAccessToken();
+      if (!token || cancelled) return;
+
+      const response = await fetch("/api/billing/checkout", {
+        headers: await getAuthHeaders(),
+      });
+      const payload = (await response.json()) as { eligible?: boolean };
+      if (!cancelled && response.ok && payload.eligible) {
+        setCheckoutEnabled(true);
+        setStatus("Live Checkout test access is enabled for this account.");
+      }
+    })().catch(() => {
+      // Keep Checkout closed when eligibility cannot be verified.
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function startCheckout() {
     if (!checkoutEnabled) return;
