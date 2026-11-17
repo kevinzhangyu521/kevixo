@@ -187,13 +187,13 @@ function testServerSideCheckoutAndPortalBoundaries() {
 
   assert(/getUserFromRequest\(request\)/.test(checkout), "Expected checkout configuration to require authentication.");
   assert(/createPaddlePortalUrl\(user\.id\)/.test(portal), "Expected portal access to use only the authenticated user ID.");
-  assert(/New subscriptions are not currently available/.test(pricing), "Expected pricing to explain that new subscriptions are paused.");
+  assert(/Checkout remains closed/.test(pricing), "Expected pricing to explain that checkout remains closed by default.");
   assert(/const body = await request\.text\(\)/.test(webhook), "Expected webhook signature verification to use the raw request body.");
   assert(/request\.headers\.get\("paddle-signature"\)/.test(webhook), "Expected webhook to require Paddle's signature header.");
   assert(/verifyCheckoutBinding\(customBinding, customUserId/.test(paddleAdmin), "Expected lifecycle attribution to verify custom data bindings.");
 }
 
-function testPausesNewCoachSalesWithoutAffectingSubscriberBilling() {
+function testPreparesCoachCheckoutWithoutOpeningSales() {
   const checkout = readFileSync("app/api/billing/checkout/route.ts", "utf8");
   const portal = readFileSync("app/api/billing/portal/route.ts", "utf8");
   const pricing = readFileSync("app/pricing/page.tsx", "utf8");
@@ -204,9 +204,11 @@ function testPausesNewCoachSalesWithoutAffectingSubscriberBilling() {
 
   assert(
     /New Coach subscriptions are not available yet\./.test(checkout),
-    "Expected the checkout route to pause new Coach subscriptions.",
+    "Expected the checkout route to retain its closed response.",
   );
-  assert(!/getPaddleCheckoutConfiguration/.test(checkout), "Expected no checkout configuration while Coach sales are paused.");
+  assert(/COACH_CHECKOUT_ENABLED/.test(checkout), "Expected a private server-side checkout gate.");
+  assert(/getPaddleCheckoutConfiguration\(user\)/.test(checkout), "Expected the original Paddle checkout path to be prepared behind the gate.");
+  assert(/NEXT_PUBLIC_COACH_CHECKOUT_ENABLED/.test(pricing), "Expected the pricing button to remain gated by default.");
   assert(/createPaddlePortalUrl\(user\.id\)/.test(portal), "Expected existing subscribers to retain billing portal access.");
   assert(!/Unlimited Hand Reviews|Personal Leak Detection|Monthly Improvement Reports/.test(pricing), "Expected pricing to remove unfulfilled Coach promises.");
   assert(!/Coach is being built|Available with Coach/.test(review), "Expected review results to remove stale Coach gating copy.");
@@ -225,6 +227,6 @@ testValidatesSubscriptionIdentityWithoutEmailFallback();
 testKeepsTheLatestPaddleSubscriptionForAdmin();
 testDatabaseIdempotencySchema();
 testServerSideCheckoutAndPortalBoundaries();
-testPausesNewCoachSalesWithoutAffectingSubscriberBilling();
+testPreparesCoachCheckoutWithoutOpeningSales();
 
 console.log("paddle billing tests passed");

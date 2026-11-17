@@ -1,7 +1,38 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { getAuthHeaders, getCurrentAccessToken } from "@/lib/auth-client";
+import { isCoachCheckoutEnabled } from "@/lib/coach-checkout";
+import { saveGrowthEvent } from "@/lib/growth-client";
+
+type PaddleCheckoutConfiguration = {
+  clientToken: string;
+  environment: "production";
+  priceId: string;
+  customerEmail: string;
+  customData: Record<string, string>;
+};
+
+declare global {
+  interface Window {
+    Paddle?: {
+      Environment: { set: (environment: "production") => void };
+      Initialize: (options: { token: string }) => void;
+      Checkout: {
+        open: (options: {
+          items: Array<{ priceId: string; quantity: number }>;
+          customer: { email: string };
+          customData: Record<string, string>;
+          eventCallback: (event: { name?: string }) => void;
+        }) => void;
+      };
+    };
+  }
+}
 
 const freeFeatures = [
   "Hand reviews with practical AI feedback",
@@ -9,22 +40,84 @@ const freeFeatures = [
   "Daily practice, progress, and personal training tools",
 ];
 
+const coachPreparation = [
+  "Everything currently available in Free",
+  "Coach benefits will be finalized before checkout reopens",
+  "Existing subscribers can continue managing billing from their account",
+];
+
+const checkoutEnabled = isCoachCheckoutEnabled(process.env.NEXT_PUBLIC_COACH_CHECKOUT_ENABLED);
+
 export default function PricingPage() {
+  const [status, setStatus] = useState(
+    checkoutEnabled
+      ? "Upgrade when you are ready for long-term coaching."
+      : "Checkout remains closed while the Coach benefits are finalized.",
+  );
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function startCheckout() {
+    if (!checkoutEnabled) return;
+    setIsLoading(true);
+    setStatus("Preparing checkout...");
+
+    try {
+      const token = await getCurrentAccessToken();
+      if (!token) {
+        window.location.href = "/login?redirect=/pricing";
+        return;
+      }
+
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+      });
+      const payload = (await response.json()) as {
+        ok: boolean;
+        alreadySubscribed?: boolean;
+        checkout?: PaddleCheckoutConfiguration;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok) throw new Error(payload.error ?? "Checkout could not be started.");
+      if (payload.alreadySubscribed) {
+        setStatus("Your Coach subscription is already active.");
+        return;
+      }
+      if (!payload.checkout) throw new Error("Checkout could not be prepared.");
+
+      const paddle = await loadPaddle();
+      paddle.Environment.set(payload.checkout.environment);
+      paddle.Initialize({ token: payload.checkout.clientToken });
+      paddle.Checkout.open({
+        items: [{ priceId: payload.checkout.priceId, quantity: 1 }],
+        customer: { email: payload.checkout.customerEmail },
+        customData: payload.checkout.customData,
+        eventCallback: (event) => {
+          if (event.name === "checkout.completed") {
+            void saveGrowthEvent("checkout_completed");
+            setStatus("Payment received. Your Coach status will update after secure confirmation.");
+          }
+          if (event.name === "checkout.closed") {
+            setStatus("Checkout closed. Your Free plan is unchanged.");
+          }
+        },
+      });
+      void saveGrowthEvent("checkout_started");
+    } catch (error) {
+      setStatus(getFriendlyCheckoutStatus(error));
+      setIsLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader ctaLabel="Analyze Free" ctaHref="/review" />
-
       <section className="mx-auto w-full max-w-6xl px-5 pb-16 pt-8 md:pb-24 md:pt-12">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-            Kevixo plans
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 md:text-6xl">
-            Study poker decisions with Kevixo
-          </h1>
-          <p className="mt-5 text-base leading-7 text-slate-400 md:text-lg">
-            All currently available hand review and study tools are free to use.
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Kevixo plans</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 md:text-6xl">Study poker decisions with Kevixo</h1>
+          <p className="mt-5 text-base leading-7 text-slate-400 md:text-lg">All currently available hand review and study tools remain free to use.</p>
         </div>
 
         <div className="mt-10 grid gap-5 lg:grid-cols-2">
@@ -33,56 +126,63 @@ export default function PricingPage() {
             price="$0"
             description="Use Kevixo&apos;s available review and study tools at no cost."
             features={freeFeatures}
-            action={
-              <Button asChild variant="secondary">
-                <Link href="/review">Use Kevixo Free</Link>
-              </Button>
-            }
+            action={<Button asChild variant="secondary"><Link href="/review">Use Kevixo Free</Link></Button>}
           />
           <PricingCard
-            title="Coach subscriptions"
-            price="Temporarily unavailable"
-            description="We are not opening new Coach subscriptions until the plan has a distinct, fully delivered set of benefits."
-            features={[
-              "New subscriptions are not currently available",
-              "Existing subscribers can continue to manage their billing from their account",
-            ]}
+            highlighted
+            title="Coach"
+            price="$9.99/month"
+            description="The original Coach checkout is prepared but remains closed until paid benefits are confirmed."
+            features={coachPreparation}
             action={
-              <Button asChild variant="secondary">
-                <Link href="/review">Continue with Free</Link>
+              <Button onClick={startCheckout} disabled={!checkoutEnabled || isLoading}>
+                {!checkoutEnabled ? "Checkout Temporarily Closed" : isLoading ? "Opening Checkout..." : "Upgrade to Kevixo Coach"}
               </Button>
             }
           />
         </div>
+        <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-6 text-slate-400">{status}</p>
       </section>
     </main>
   );
 }
 
-function PricingCard({
-  action,
-  description,
-  features,
-  price,
-  title,
-}: {
+function getFriendlyCheckoutStatus(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  const normalizedMessage = message.toLowerCase();
+  if (normalizedMessage.includes("paddle") || normalizedMessage.includes("not configured")) {
+    return "Checkout is not available yet. Please try again later.";
+  }
+  return message || "Checkout could not be started.";
+}
+
+function loadPaddle() {
+  if (window.Paddle) return Promise.resolve(window.Paddle);
+  return new Promise<NonNullable<Window["Paddle"]>>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+    script.async = true;
+    script.onload = () => window.Paddle ? resolve(window.Paddle) : reject(new Error("Checkout could not load."));
+    script.onerror = () => reject(new Error("Checkout could not load."));
+    document.head.appendChild(script);
+  });
+}
+
+function PricingCard({ action, description, features, highlighted = false, price, title }: {
   action: React.ReactNode;
   description: string;
   features: string[];
+  highlighted?: boolean;
   price: string;
   title: string;
 }) {
   return (
-    <Card className="p-6 md:p-7">
+    <Card className={["p-6 md:p-7", highlighted ? "border-primary/35 bg-primary/5" : ""].join(" ")}>
       <CardTitle>{title}</CardTitle>
       <p className="mt-4 text-4xl font-semibold tracking-tight text-slate-50">{price}</p>
       <p className="mt-3 text-sm leading-6 text-slate-400">{description}</p>
       <div className="mt-6 grid gap-3">
-        {features.map((feature) => (
-          <div key={feature} className="rounded-xl border border-slate-800 bg-slate-950/48 px-4 py-3 text-sm font-medium text-slate-200">
-            {feature}
-          </div>
-        ))}
+        {features.map((feature) => <div key={feature} className="rounded-xl border border-slate-800 bg-slate-950/48 px-4 py-3 text-sm font-medium text-slate-200">{feature}</div>)}
       </div>
       <div className="mt-7">{action}</div>
     </Card>
