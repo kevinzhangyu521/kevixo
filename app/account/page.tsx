@@ -20,6 +20,7 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase";
 import type { Subscription } from "@/lib/subscription";
+import { shouldOfferPaymentMethodUpdate, type PaddlePortalAction } from "@/lib/paddle-portal";
 
 type AccountReviewsResponse = {
   ok: boolean;
@@ -182,13 +183,14 @@ export default function AccountPage() {
     router.refresh();
   }
 
-  async function handleManageSubscription() {
+  async function handleManageSubscription(action: PaddlePortalAction = "overview") {
     setIsBillingLoading(true);
 
     try {
       const response = await fetch("/api/billing/portal", {
         method: "POST",
-        headers: await getAuthHeaders(),
+        headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
       });
       const payload = (await response.json()) as { ok: boolean; url?: string; error?: string };
 
@@ -338,9 +340,9 @@ export default function AccountPage() {
                 Coach billing is managed securely through Paddle. Your subscription status updates
                 after Paddle confirms each change.
               </p>
-              <div className="mt-5">
+              <div className="mt-5 flex flex-wrap gap-3">
                 {subscription?.paddleCustomerId ? (
-                  <Button onClick={handleManageSubscription} disabled={isBillingLoading}>
+                  <Button onClick={() => handleManageSubscription("overview")} disabled={isBillingLoading}>
                     {isBillingLoading ? "Opening..." : "Manage Subscription"}
                   </Button>
                 ) : (
@@ -348,6 +350,15 @@ export default function AccountPage() {
                     <Link href="/pricing">View plan availability</Link>
                   </Button>
                 )}
+                {subscription?.paddleCustomerId && shouldOfferPaymentMethodUpdate(subscription.status) ? (
+                  <Button
+                    onClick={() => handleManageSubscription("update_payment_method")}
+                    disabled={isBillingLoading}
+                    variant="secondary"
+                  >
+                    Update Payment Method
+                  </Button>
+                ) : null}
               </div>
             </Card>
           </div>

@@ -9,6 +9,7 @@ import {
   type PaddleWebhookEvent,
 } from "@/lib/paddle-billing";
 import { insertGrowthEvent } from "@/lib/growth-events";
+import { selectPaddlePortalUrl, type PaddlePortalAction } from "@/lib/paddle-portal";
 
 const subscriptionsTable = "subscriptions";
 const webhookEventsTable = "paddle_webhook_events";
@@ -44,7 +45,7 @@ export function verifyIncomingPaddleWebhook(body: string, signature: string | nu
   return verifyPaddleSignature(body, signature, readRequiredEnv("PADDLE_WEBHOOK_SECRET"));
 }
 
-export async function createPaddlePortalUrl(userId: string) {
+export async function createPaddlePortalUrl(userId: string, action: PaddlePortalAction = "overview") {
   const subscription = await getLatestPaddleSubscription(userId);
 
   if (!subscription?.paddle_customer_id) {
@@ -66,16 +67,15 @@ export async function createPaddlePortalUrl(userId: string) {
       }),
     },
   );
-  const payload = (await response.json()) as {
-    data?: { urls?: { general?: { overview?: string } } };
+  const payload = (await response.json()) as Parameters<typeof selectPaddlePortalUrl>[0] & {
     error?: { detail?: string };
   };
 
-  if (!response.ok || !payload.data?.urls?.general?.overview) {
+  if (!response.ok) {
     throw new Error(payload.error?.detail ?? "Billing management could not be opened.");
   }
 
-  return payload.data.urls.general.overview;
+  return selectPaddlePortalUrl(payload, subscription.paddle_subscription_id ?? "", action);
 }
 
 export async function processPaddleWebhook(event: PaddleEvent) {

@@ -9,6 +9,7 @@ import { getAuthHeaders, getCurrentAccessToken } from "@/lib/auth-client";
 import { buildPlayerProfile } from "@/lib/player-profile";
 import { readStoredReviews, type StoredReview } from "@/lib/review-store";
 import type { Subscription } from "@/lib/subscription";
+import { shouldOfferPaymentMethodUpdate, type PaddlePortalAction } from "@/lib/paddle-portal";
 
 export default function ProfilePage() {
   const [reviews, setReviews] = useState<StoredReview[]>([]);
@@ -59,7 +60,7 @@ export default function ProfilePage() {
 
   const profile = useMemo(() => buildPlayerProfile(reviews), [reviews]);
 
-  async function openBillingPortal() {
+  async function openBillingPortal(action: PaddlePortalAction = "overview") {
     setIsBillingLoading(true);
     setBillingStatus("Opening billing portal...");
 
@@ -73,7 +74,8 @@ export default function ProfilePage() {
 
       const response = await fetch("/api/billing/portal", {
         method: "POST",
-        headers: await getAuthHeaders(),
+        headers: { ...(await getAuthHeaders()), "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
       });
       const payload = (await response.json()) as { ok: boolean; url?: string; error?: string };
 
@@ -236,7 +238,7 @@ function BillingCard({
   billingStatus: string;
   isBillingLoading: boolean;
   isCoach: boolean;
-  onManageBilling: () => void;
+  onManageBilling: (action?: PaddlePortalAction) => void;
   subscription: Subscription | null;
 }) {
   const canManageSubscription = Boolean(subscription?.paddleCustomerId);
@@ -254,7 +256,7 @@ function BillingCard({
       </div>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
         {canManageSubscription ? (
-          <Button onClick={onManageBilling} disabled={isBillingLoading}>
+          <Button onClick={() => onManageBilling("overview")} disabled={isBillingLoading}>
             {isBillingLoading ? "Opening..." : "Manage Subscription"}
           </Button>
         ) : (
@@ -263,8 +265,17 @@ function BillingCard({
           </p>
         )}
         {isCoach ? (
-          <Button onClick={onManageBilling} disabled={isBillingLoading} variant="secondary">
+          <Button onClick={() => onManageBilling("overview")} disabled={isBillingLoading} variant="secondary">
             Cancel Subscription
+          </Button>
+        ) : null}
+        {canManageSubscription && shouldOfferPaymentMethodUpdate(subscription?.status) ? (
+          <Button
+            onClick={() => onManageBilling("update_payment_method")}
+            disabled={isBillingLoading}
+            variant="secondary"
+          >
+            Update Payment Method
           </Button>
         ) : null}
       </div>

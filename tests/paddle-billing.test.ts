@@ -186,7 +186,8 @@ function testServerSideCheckoutAndPortalBoundaries() {
   const paddleAdmin = readFileSync("lib/paddle-admin.ts", "utf8");
 
   assert(/getUserFromRequest\(request\)/.test(checkout), "Expected checkout configuration to require authentication.");
-  assert(/createPaddlePortalUrl\(user\.id\)/.test(portal), "Expected portal access to use only the authenticated user ID.");
+  assert(/createPaddlePortalUrl\(user\.id, action\)/.test(portal), "Expected portal access to use only the authenticated user ID.");
+  assert(!/customer[_I]d|subscription[_I]d/.test(portal), "Expected the portal route not to accept customer or subscription IDs.");
   assert(/Checkout remains closed/.test(pricing), "Expected pricing to explain that checkout remains closed by default.");
   assert(/const body = await request\.text\(\)/.test(webhook), "Expected webhook signature verification to use the raw request body.");
   assert(/request\.headers\.get\("paddle-signature"\)/.test(webhook), "Expected webhook to require Paddle's signature header.");
@@ -209,7 +210,7 @@ function testPreparesCoachCheckoutWithoutOpeningSales() {
   assert(/COACH_CHECKOUT_ENABLED/.test(checkout), "Expected a private server-side checkout gate.");
   assert(/getPaddleCheckoutConfiguration\(user\)/.test(checkout), "Expected the original Paddle checkout path to be prepared behind the gate.");
   assert(/NEXT_PUBLIC_COACH_CHECKOUT_ENABLED/.test(pricing), "Expected the pricing button to remain gated by default.");
-  assert(/createPaddlePortalUrl\(user\.id\)/.test(portal), "Expected existing subscribers to retain billing portal access.");
+  assert(/createPaddlePortalUrl\(user\.id, action\)/.test(portal), "Expected existing subscribers to retain billing portal access.");
   assert(!/Unlimited Hand Reviews|Personal Leak Detection|Monthly Improvement Reports/.test(pricing), "Expected pricing to remove unfulfilled Coach promises.");
   assert(!/Coach is being built|Available with Coach/.test(review), "Expected review results to remove stale Coach gating copy.");
   assert(!/Coach Timeline|Monthly Coach Report|Upgrade to Coach/.test(profile), "Expected profile to remove unavailable Coach upgrade promises.");
