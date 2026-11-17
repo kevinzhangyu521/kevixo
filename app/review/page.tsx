@@ -67,6 +67,7 @@ type ReviewLookupResponse = {
 
 export default function ReviewPage() {
   const hasTrackedReviewView = useRef(false);
+  const analysisRequestRef = useRef<{ hand: string; requestId: string } | null>(null);
   const [handHistory, setHandHistory] = useState(demoHands[0].hand);
   const [selectedDemoId, setSelectedDemoId] = useState(demoHands[0].id);
   const [report, setReport] = useState<CoachingReport | null>(null);
@@ -226,12 +227,18 @@ export default function ReviewPage() {
     trackFunnelEvent("review_started");
     void saveGrowthEvent("review_started");
 
+    const requestHand = parsedHand.normalizedText || trimmedHand;
+    const requestId = analysisRequestRef.current?.hand === requestHand
+      ? analysisRequestRef.current.requestId
+      : crypto.randomUUID();
+    analysisRequestRef.current = { hand: requestHand, requestId };
+
     try {
       const [response] = await Promise.all([
         fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
-          body: JSON.stringify({ handHistory, visitorId: getKevixoVisitorId() }),
+          body: JSON.stringify({ handHistory, requestId, visitorId: getKevixoVisitorId() }),
         }),
         wait(minimumLoadingMs),
       ]);
@@ -262,6 +269,7 @@ export default function ReviewPage() {
         buildMemoryEntry(payload.report, selectedDemoId !== ""),
       );
       setMemoryReviews(nextMemoryReviews);
+      analysisRequestRef.current = null;
     } catch (caughtError) {
       trackFunnelEvent("analyze_failed");
       void saveGrowthEvent("analyze_failed");

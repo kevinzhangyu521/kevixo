@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getUserEntitlements } from "@/lib/entitlements";
 
 export type Subscription = {
   id: string;
@@ -52,21 +53,7 @@ export async function getSubscription(userId: string): Promise<Subscription> {
 }
 
 export async function isCoachUser(userId: string) {
-  const subscription = await getSubscription(userId);
-
-  if (subscription.plan !== "coach") {
-    return false;
-  }
-
-  if (!["active", "trialing"].includes(subscription.status)) {
-    return false;
-  }
-
-  if (!subscription.currentPeriodEnd) {
-    return true;
-  }
-
-  return new Date(subscription.currentPeriodEnd).getTime() > Date.now();
+  return (await getUserEntitlements(userId)).isCoach;
 }
 
 export async function requireCoach(userId: string) {
