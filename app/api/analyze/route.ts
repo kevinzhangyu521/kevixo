@@ -20,6 +20,11 @@ import {
   type AnalysisQuotaStore,
 } from "@/lib/analysis-quota";
 import { isCoachUser } from "@/lib/subscription";
+import {
+  anonymousAnalysisLimit,
+  createAnonymousAnalysisIdentity,
+} from "@/lib/anonymous-analysis-identity";
+import { createSupabaseAnonymousAnalysisQuotaStore } from "@/lib/anonymous-analysis-quota";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -62,6 +67,7 @@ export async function POST(request: Request) {
   const quotaEnabled = isAnalysisQuotaEnabled(process.env.ANALYSIS_QUOTA_ENABLED);
   let userId: string | undefined;
   let quota: { requestId: string; fingerprint: string; store: AnalysisQuotaStore } | undefined;
+  let anonymousSetCookie: string | undefined;
 
   if (quotaEnabled) {
     try {
@@ -71,54 +77,88 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Analysis is temporarily unavailable." }, { status: 503 });
     }
 
-    if (userId && !isDemo) {
-      let isCoach: boolean;
-      try {
-        isCoach = await isCoachUser(userId);
-      } catch (error) {
-        console.error("[Kevixo analysis entitlement lookup failed]", { userId, error: getErrorDetails(error) });
-        return NextResponse.json({ error: "Analysis is temporarily unavailable." }, { status: 503 });
-      }
-
+    if (!isDemo) {
       const requestId = body.requestId?.trim();
       if (!requestId || !isValidRequestId(requestId)) {
         return NextResponse.json({ error: "A valid analysis request ID is required." }, { status: 400 });
       }
 
       const fingerprint = createAnalysisInputFingerprint(normalizedHandHistory);
-      const store = createSupabaseAnalysisQuotaStore();
+      let isCoach = false;
+      let quotaSubjectId: string;
+      let limit: number | undefined;
+      let store: AnalysisQuotaStore;
+
+      if (userId) {
+        try {
+          isCoach = await isCoachUser(userId);
+        } catch (error) {
+          console.error("[Kevixo analysis entitlement lookup failed]", { userId, error: getErrorDetails(error) });
+          return NextResponse.json({ error: "Analysis is temporarily unavailable." }, { status: 503 });
+        }
+        quotaSubjectId = userId;
+        store = createSupabaseAnalysisQuotaStore();
+      } else {
+        try {
+          const identity = createAnonymousAnalysisIdentity({
+            cookieHeader: request.headers.get("cookie"),
+            visitorId: body.visitorId,
+            secret: process.env.ANALYSIS_ANONYMOUS_COOKIE_SECRET,
+          });
+          quotaSubjectId = identity.subjectHash;
+          anonymousSetCookie = identity.setCookie;
+          limit = anonymousAnalysisLimit;
+          store = createSupabaseAnonymousAnalysisQuotaStore();
+        } catch (error) {
+          console.error("[Kevixo anonymous analysis identity failed]", { error: getErrorDetails(error) });
+          return NextResponse.json({ error: "Analysis is temporarily unavailable." }, { status: 503 });
+        }
+      }
+
       let reservation;
       try {
         reservation = await beginAnalysisQuota({
-          userId,
+          quotaSubjectId,
           requestId,
           fingerprint,
           isCoach,
           isDemo: false,
           isFollowUp: false,
+          limit,
         }, store);
       } catch (error) {
         console.error("[Kevixo analysis quota reservation failed]", { userId, requestId, error: getErrorDetails(error) });
-        return NextResponse.json({ error: "Analysis is temporarily unavailable." }, { status: 503 });
+        return jsonWithAnonymousCookie({ error: "Analysis is temporarily unavailable." }, 503, anonymousSetCookie);
       }
 
       if (reservation.kind === "quota_exceeded") {
-        return NextResponse.json(
-          { error: "You have used your 10 Free analyses for this UTC month." },
-          { status: 429 },
-        );
+        return userId
+          ? jsonWithAnonymousCookie(
+              { error: "You have used your 10 Free analyses for this UTC month." },
+              429,
+              anonymousSetCookie,
+            )
+          : jsonWithAnonymousCookie(
+              {
+                error: "Your free guest analysis has been used. Sign up or log in to continue.",
+                code: "anonymous_analysis_limit_reached",
+              },
+              429,
+              anonymousSetCookie,
+            );
       }
       if (reservation.kind === "in_progress") {
-        return NextResponse.json(
+        return jsonWithAnonymousCookie(
           { error: "This analysis is still in progress. Please retry shortly." },
-          { status: 409 },
+          409,
+          anonymousSetCookie,
         );
       }
       if (reservation.kind === "replayed") {
         if (!isSuccessfulAnalysisResult(reservation.result)) {
-          return NextResponse.json({ error: "Saved analysis result is unavailable." }, { status: 503 });
+          return jsonWithAnonymousCookie({ error: "Saved analysis result is unavailable." }, 503, anonymousSetCookie);
         }
-        return NextResponse.json(reservation.result);
+        return jsonWithAnonymousCookie(reservation.result, 200, anonymousSetCookie);
       }
 
       quota = { requestId, fingerprint, store };
@@ -129,10 +169,7 @@ export async function POST(request: Request) {
 
   if (!result.ok) {
     if (quota) await safelyReleaseQuota(quota, userId);
-    return NextResponse.json(
-      { error: result.error },
-      { status: 422 },
-    );
+    return jsonWithAnonymousCookie({ error: result.error }, 422, anonymousSetCookie);
   }
 
   if (quota) {
@@ -145,7 +182,7 @@ export async function POST(request: Request) {
         quota.store,
       );
       if (confirmation.status !== "succeeded") {
-        return NextResponse.json({ error: "Analysis could not be confirmed. Please retry." }, { status: 409 });
+        return jsonWithAnonymousCookie({ error: "Analysis could not be confirmed. Please retry." }, 409, anonymousSetCookie);
       }
     } catch (error) {
       console.error("[Kevixo analysis quota confirmation failed]", {
@@ -153,7 +190,7 @@ export async function POST(request: Request) {
         requestId: quota.requestId,
         error: getErrorDetails(error),
       });
-      return NextResponse.json({ error: "Analysis is temporarily unavailable." }, { status: 503 });
+      return jsonWithAnonymousCookie({ error: "Analysis is temporarily unavailable." }, 503, anonymousSetCookie);
     }
   }
 
@@ -202,7 +239,13 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json(result);
+  return jsonWithAnonymousCookie(result, 200, anonymousSetCookie);
+}
+
+function jsonWithAnonymousCookie(body: unknown, status: number, setCookie: string | undefined) {
+  const response = NextResponse.json(body, { status });
+  if (setCookie) response.headers.set("Set-Cookie", setCookie);
+  return response;
 }
 
 async function savePersistenceEvent({

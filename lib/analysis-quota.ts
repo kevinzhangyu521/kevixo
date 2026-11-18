@@ -31,11 +31,13 @@ export type AnalysisQuotaStore = {
 
 export type BeginAnalysisQuotaInput = {
   userId?: string;
+  quotaSubjectId?: string;
   requestId: string;
   fingerprint: string;
   isCoach: boolean;
   isDemo: boolean;
   isFollowUp: boolean;
+  limit?: number;
 };
 
 export type BeginAnalysisQuotaResult =
@@ -49,15 +51,16 @@ export async function beginAnalysisQuota(
   input: BeginAnalysisQuotaInput,
   store: AnalysisQuotaStore,
 ): Promise<BeginAnalysisQuotaResult> {
-  if (!input.userId) return { kind: "bypassed", reason: "anonymous" };
+  const quotaSubjectId = input.quotaSubjectId ?? input.userId;
+  if (!quotaSubjectId) return { kind: "bypassed", reason: "anonymous" };
   if (input.isDemo) return { kind: "bypassed", reason: "demo" };
   if (input.isFollowUp) return { kind: "bypassed", reason: "follow_up" };
 
   const reservation = await store.reserve({
-    userId: input.userId,
+    userId: quotaSubjectId,
     requestId: input.requestId,
     fingerprint: input.fingerprint,
-    limit: freeMonthlyAnalysisLimit,
+    limit: input.limit ?? freeMonthlyAnalysisLimit,
     countsTowardQuota: !input.isCoach,
   });
 

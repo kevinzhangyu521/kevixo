@@ -52,7 +52,7 @@ type AnalyzeResponse =
   | { ok: true; report: CoachingReport }
   | { ok: false; error: string };
 
-type ErrorResponse = { error?: string };
+type ErrorResponse = { error?: string; code?: string };
 
 type ReviewLookupResponse = {
   ok: boolean;
@@ -75,6 +75,7 @@ export default function ReviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [error, setError] = useState("");
+  const [analysisErrorCode, setAnalysisErrorCode] = useState("");
   const [reviewLookupMessage, setReviewLookupMessage] = useState("");
   const [feedbackUsefulPart, setFeedbackUsefulPart] = useState<UsefulPart>("Biggest Mistake");
   const [feedbackImprovement, setFeedbackImprovement] = useState("");
@@ -207,6 +208,7 @@ export default function ReviewPage() {
     }
 
     setError("");
+    setAnalysisErrorCode("");
     setReport(null);
     setIsLoading(true);
     setActiveStep(0);
@@ -246,7 +248,10 @@ export default function ReviewPage() {
       const payload = (await response.json()) as AnalyzeResponse | ErrorResponse;
 
       if (!response.ok || !("ok" in payload)) {
-        throw new Error(getResponseError(payload, "Kevixo could not analyze this hand."));
+        throw new AnalyzeRequestError(
+          getResponseError(payload, "Kevixo could not analyze this hand."),
+          "code" in payload ? payload.code : undefined,
+        );
       }
 
       if (!payload.ok) {
@@ -278,6 +283,7 @@ export default function ReviewPage() {
           ? caughtError.message
           : "Network error. Please try again with the same hand history.",
       );
+      setAnalysisErrorCode(caughtError instanceof AnalyzeRequestError ? caughtError.code ?? "" : "");
     } finally {
       setIsLoading(false);
     }
@@ -361,6 +367,7 @@ export default function ReviewPage() {
     setHandHistory(demo.hand);
     setReport(null);
     setError("");
+    setAnalysisErrorCode("");
     setReviewLookupMessage("");
     trackDemoSelected(demo.id);
   }
@@ -370,6 +377,7 @@ export default function ReviewPage() {
     setHandHistory("");
     setReport(null);
     setError("");
+    setAnalysisErrorCode("");
     setReviewLookupMessage("");
 
     window.requestAnimationFrame(() => {
@@ -510,7 +518,9 @@ export default function ReviewPage() {
 
         {isLoading ? <LoadingState activeStep={activeStep} /> : null}
         {reviewLookupMessage ? <ReviewUnavailable message={reviewLookupMessage} /> : null}
-        {error ? (
+        {error && analysisErrorCode === "anonymous_analysis_limit_reached" ? (
+          <AnonymousTrialLimit message={error} />
+        ) : error ? (
           <HandCompletionAssistant handHistory={handHistory} onTryDemo={() => loadDemoHand()} />
         ) : null}
         {report ? <ReviewShareCard report={report} /> : null}
@@ -1001,6 +1011,13 @@ function getResponseError(payload: unknown, fallback: string) {
   return fallback;
 }
 
+class AnalyzeRequestError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+    this.name = "AnalyzeRequestError";
+  }
+}
+
 function formatFeedbackInsertError(payload: {
   error?: string;
   supabaseError?: {
@@ -1062,6 +1079,22 @@ function LoadingState({ activeStep }: { activeStep: number }) {
             </div>
           );
         })}
+      </div>
+    </Card>
+  );
+}
+
+function AnonymousTrialLimit({ message }: { message: string }) {
+  return (
+    <Card className="fade-in mt-8 border-primary/25 bg-primary/5" id="review-error">
+      <CardTitle>Continue your reviews with a free account</CardTitle>
+      <p className="mt-3 text-base leading-7 text-slate-200" role="status">{message}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-400">
+        Your guest trial includes one successful real analysis. Demo hands remain available without using it.
+      </p>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        <Button asChild><Link href="/signup">Sign up free</Link></Button>
+        <Button asChild variant="secondary"><Link href="/login">Log in</Link></Button>
       </div>
     </Card>
   );
