@@ -2,7 +2,44 @@ export function isCoachCheckoutEnabled(value: string | undefined) {
   return value === "true";
 }
 
-export type CoachCheckoutAccess = "allowed" | "already_subscribed" | "closed" | "unauthenticated";
+export type CoachCheckoutAccess =
+  | "allowed"
+  | "already_subscribed"
+  | "payment_update_required"
+  | "subscription_paused"
+  | "closed"
+  | "unauthenticated";
+
+export type CoachCheckoutSubscriptionUi = {
+  actionHref: "/account";
+  actionLabel: "Manage Subscription" | "Update Payment Method";
+  status: string;
+};
+
+export function getCoachCheckoutSubscriptionUi(access: CoachCheckoutAccess): CoachCheckoutSubscriptionUi | null {
+  if (access === "already_subscribed") {
+    return {
+      actionHref: "/account",
+      actionLabel: "Manage Subscription",
+      status: "Your Coach subscription is already active. Manage it from your account.",
+    };
+  }
+  if (access === "payment_update_required") {
+    return {
+      actionHref: "/account",
+      actionLabel: "Update Payment Method",
+      status: "Your existing Coach subscription needs a payment method update.",
+    };
+  }
+  if (access === "subscription_paused") {
+    return {
+      actionHref: "/account",
+      actionLabel: "Manage Subscription",
+      status: "Your existing Coach subscription is paused. Manage or resume it from your account.",
+    };
+  }
+  return null;
+}
 
 export type CoachCheckoutEventState = {
   phase: "idle" | "open" | "completed" | "failed";
@@ -47,17 +84,19 @@ export function parseCoachCheckoutTestUserIds(value: string | undefined) {
 
 export function getCoachCheckoutAccess({
   globalEnabled,
-  isCoach,
+  subscriptionStatus,
   testUserIds,
   userId,
 }: {
   globalEnabled: string | undefined;
-  isCoach: boolean;
+  subscriptionStatus: string | null | undefined;
   testUserIds: string | undefined;
   userId: string | undefined;
 }): CoachCheckoutAccess {
   if (!userId) return "unauthenticated";
-  if (isCoach) return "already_subscribed";
+  if (subscriptionStatus === "active" || subscriptionStatus === "trialing") return "already_subscribed";
+  if (subscriptionStatus === "past_due") return "payment_update_required";
+  if (subscriptionStatus === "paused") return "subscription_paused";
   if (isCoachCheckoutEnabled(globalEnabled)) return "allowed";
   return parseCoachCheckoutTestUserIds(testUserIds).has(userId.toLowerCase()) ? "allowed" : "closed";
 }

@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders, getCurrentAccessToken } from "@/lib/auth-client";
 import {
+  getCoachCheckoutSubscriptionUi,
   getCoachCheckoutFailureState,
   isCoachCheckoutEnabled,
   openCoachPaddleCheckout,
+  type CoachCheckoutAccess,
+  type CoachCheckoutSubscriptionUi,
 } from "@/lib/coach-checkout";
 import { saveGrowthEvent } from "@/lib/growth-client";
 
@@ -67,12 +70,11 @@ export default function PricingPage() {
       : "Checkout is currently available only to approved test accounts.",
   );
   const [checkoutPhase, setCheckoutPhase] = useState<"idle" | "opening" | "open" | "completed" | "failed">("idle");
+  const [subscriptionUi, setSubscriptionUi] = useState<CoachCheckoutSubscriptionUi | null>(null);
   const isLoading = checkoutPhase === "opening";
   const checkoutBusy = isLoading || checkoutPhase === "open";
 
   useEffect(() => {
-    if (globalCheckoutEnabled) return;
-
     let cancelled = false;
     void (async () => {
       const token = await getCurrentAccessToken();
@@ -81,10 +83,23 @@ export default function PricingPage() {
       const response = await fetch("/api/billing/checkout", {
         headers: await getAuthHeaders(),
       });
-      const payload = (await response.json()) as { eligible?: boolean };
+      const payload = (await response.json()) as { eligible?: boolean; checkoutAccess?: CoachCheckoutAccess };
+      const existingSubscriptionUi = payload.checkoutAccess
+        ? getCoachCheckoutSubscriptionUi(payload.checkoutAccess)
+        : null;
+      if (!cancelled && response.ok && existingSubscriptionUi) {
+        setSubscriptionUi(existingSubscriptionUi);
+        setCheckoutEnabled(false);
+        setStatus(existingSubscriptionUi.status);
+        return;
+      }
       if (!cancelled && response.ok && payload.eligible) {
         setCheckoutEnabled(true);
-        setStatus("Live Checkout test access is enabled for this account.");
+        setStatus(
+          globalCheckoutEnabled
+            ? "Upgrade when you are ready for long-term coaching."
+            : "Live Checkout test access is enabled for this account.",
+        );
       }
     })().catch(() => {
       // Keep Checkout closed when eligibility cannot be verified.
@@ -114,14 +129,21 @@ export default function PricingPage() {
       const payload = (await response.json()) as {
         ok: boolean;
         alreadySubscribed?: boolean;
+        existingSubscription?: boolean;
+        checkoutAccess?: CoachCheckoutAccess;
         checkout?: PaddleCheckoutConfiguration;
         error?: string;
       };
 
       if (!response.ok || !payload.ok) throw new Error(payload.error ?? "Checkout could not be started.");
-      if (payload.alreadySubscribed) {
-        setStatus("Your Coach subscription is already active.");
-        setCheckoutPhase("completed");
+      const existingSubscriptionUi = payload.checkoutAccess
+        ? getCoachCheckoutSubscriptionUi(payload.checkoutAccess)
+        : null;
+      if (payload.alreadySubscribed || payload.existingSubscription || existingSubscriptionUi) {
+        if (!existingSubscriptionUi) throw new Error("Existing subscription could not be managed.");
+        setSubscriptionUi(existingSubscriptionUi);
+        setStatus(existingSubscriptionUi.status);
+        setCheckoutPhase("idle");
         return;
       }
       if (!payload.checkout) throw new Error("Checkout could not be prepared.");
@@ -176,9 +198,15 @@ export default function PricingPage() {
             description="Everything in Free, plus Coach membership and unlimited analysis entitlement when Free limits are enabled."
             features={coachFeatures}
             action={
-              <Button onClick={startCheckout} disabled={!checkoutEnabled || checkoutBusy || checkoutPhase === "completed"}>
-                {!checkoutEnabled ? "Checkout Temporarily Closed" : isLoading ? "Opening Checkout..." : checkoutPhase === "open" ? "Checkout Open" : checkoutPhase === "completed" ? "Payment Received" : "Upgrade to Kevixo Coach"}
-              </Button>
+              subscriptionUi ? (
+                <Button asChild>
+                  <Link href={subscriptionUi.actionHref}>{subscriptionUi.actionLabel}</Link>
+                </Button>
+              ) : (
+                <Button onClick={startCheckout} disabled={!checkoutEnabled || checkoutBusy || checkoutPhase === "completed"}>
+                  {!checkoutEnabled ? "Checkout Temporarily Closed" : isLoading ? "Opening Checkout..." : checkoutPhase === "open" ? "Checkout Open" : checkoutPhase === "completed" ? "Payment Received" : "Upgrade to Kevixo Coach"}
+                </Button>
+              )
             }
           />
         </div>

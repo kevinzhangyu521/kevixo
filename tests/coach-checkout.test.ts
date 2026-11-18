@@ -1,11 +1,13 @@
 import {
   getCoachCheckoutEventState,
   getCoachCheckoutFailureState,
+  getCoachCheckoutSubscriptionUi,
   getCoachCheckoutAccess,
   isCoachCheckoutEnabled,
   openCoachPaddleCheckout,
   parseCoachCheckoutTestUserIds,
 } from "../lib/coach-checkout";
+import { selectBlockingPaddleSubscriptionStatus } from "../lib/subscription";
 import { readFileSync } from "fs";
 
 function assert(condition: unknown, message: string) {
@@ -38,7 +40,7 @@ function testAllowsOnlyWhitelistedUsersWhileGloballyClosed() {
   assert(
     getCoachCheckoutAccess({
       globalEnabled: undefined,
-      isCoach: false,
+      subscriptionStatus: null,
       testUserIds: testUserId,
       userId: testUserId,
     }) === "allowed",
@@ -47,7 +49,7 @@ function testAllowsOnlyWhitelistedUsersWhileGloballyClosed() {
   assert(
     getCoachCheckoutAccess({
       globalEnabled: "false",
-      isCoach: false,
+      subscriptionStatus: null,
       testUserIds: testUserId,
       userId: otherUserId,
     }) === "closed",
@@ -59,7 +61,7 @@ function testRejectsAnonymousUsersEvenIfAllowlistExists() {
   assert(
     getCoachCheckoutAccess({
       globalEnabled: "true",
-      isCoach: false,
+      subscriptionStatus: null,
       testUserIds: testUserId,
       userId: undefined,
     }) === "unauthenticated",
@@ -71,7 +73,7 @@ function testGlobalSwitchAllowsAuthenticatedUsers() {
   assert(
     getCoachCheckoutAccess({
       globalEnabled: "true",
-      isCoach: false,
+      subscriptionStatus: null,
       testUserIds: undefined,
       userId: otherUserId,
     }) === "allowed",
@@ -83,12 +85,76 @@ function testExistingCoachCannotPurchaseAgain() {
   assert(
     getCoachCheckoutAccess({
       globalEnabled: "true",
-      isCoach: true,
+      subscriptionStatus: "active",
       testUserIds: testUserId,
       userId: testUserId,
     }) === "already_subscribed",
     "Expected an existing Coach user to remain protected from duplicate purchase.",
   );
+}
+
+function testSelectsBlockingSubscriptionAcrossAllPaddleRows() {
+  for (const status of ["active", "trialing", "past_due", "paused"] as const) {
+    assert(
+      selectBlockingPaddleSubscriptionStatus(["canceled", status]) === status,
+      `Expected ${status} to block a second Checkout even when a canceled row also exists.`,
+    );
+  }
+  assert(
+    selectBlockingPaddleSubscriptionStatus(["canceled", "expired"]) === null,
+    "Expected only terminal subscriptions to allow a new Checkout.",
+  );
+  assert(
+    selectBlockingPaddleSubscriptionStatus(["paused", "past_due", "active"]) === "active",
+    "Expected an active subscription to take priority when multiple non-terminal rows exist.",
+  );
+}
+
+function testCheckoutAccessExplainsEveryBlockingSubscriptionState() {
+  const expected = {
+    active: "already_subscribed",
+    trialing: "already_subscribed",
+    past_due: "payment_update_required",
+    paused: "subscription_paused",
+  } as const;
+
+  for (const [subscriptionStatus, access] of Object.entries(expected)) {
+    assert(
+      getCoachCheckoutAccess({
+        globalEnabled: "true",
+        subscriptionStatus,
+        testUserIds: undefined,
+        userId: testUserId,
+      }) === access,
+      `Expected ${subscriptionStatus} to return ${access} instead of opening Checkout.`,
+    );
+  }
+
+  assert(
+    getCoachCheckoutAccess({
+      globalEnabled: "true",
+      subscriptionStatus: null,
+      testUserIds: undefined,
+      userId: testUserId,
+    }) === "allowed",
+    "Expected canceled-only users to purchase again when Checkout is globally enabled.",
+  );
+}
+
+function testBlockingSubscriptionStatesProvideTheCorrectPortalAction() {
+  const active = getCoachCheckoutSubscriptionUi("already_subscribed");
+  assert(active?.actionLabel === "Manage Subscription", "Expected active Coach users to manage their existing subscription.");
+  assert(active?.actionHref === "/account", "Expected subscription management to stay bound to the authenticated account page.");
+
+  const pastDue = getCoachCheckoutSubscriptionUi("payment_update_required");
+  assert(pastDue?.actionLabel === "Update Payment Method", "Expected past-due users to receive the payment recovery action.");
+  assert(/payment method/i.test(pastDue?.status ?? ""), "Expected past-due users to see payment recovery guidance.");
+
+  const paused = getCoachCheckoutSubscriptionUi("subscription_paused");
+  assert(paused?.actionLabel === "Manage Subscription", "Expected paused users to manage or resume their existing subscription.");
+  assert(/paused/i.test(paused?.status ?? ""), "Expected paused users to see the existing subscription state.");
+
+  assert(getCoachCheckoutSubscriptionUi("allowed") === null, "Expected users without a blocking subscription to keep the purchase action.");
 }
 
 function testCheckoutCloseRestoresTheButton() {
@@ -243,8 +309,11 @@ function testPreparedCheckoutRemainsGated() {
   assert(/COACH_CHECKOUT_TEST_USER_IDS/.test(route), "Expected a private server-side test allowlist.");
   assert(/export async function GET\(request: Request\)/.test(route), "Expected pricing eligibility to use the authenticated Checkout route.");
   assert(!/request\.json\(|searchParams/.test(route), "Expected the Checkout route not to accept a client-provided user ID.");
+  assert((route.match(/getBlockingPaddleSubscriptionStatus\(user\.id\)/g) ?? []).length === 2, "Expected both Checkout methods to inspect all existing Paddle subscription rows.");
+  assert(!/isCoachUser\(user\.id\)/.test(route), "Expected Checkout duplicate protection not to depend on Coach entitlement alone.");
   assert(/getPaddleCheckoutConfiguration\(user\)/.test(route), "Expected the original Paddle checkout configuration path.");
   assert(/NEXT_PUBLIC_COACH_CHECKOUT_ENABLED/.test(pricing), "Expected the pricing CTA to use an explicit public gate.");
+  assert(!/if \(globalCheckoutEnabled\) return/.test(pricing), "Expected existing subscriptions to be checked even when public Checkout is globally enabled.");
   assert(/openCoachPaddleCheckout\(/.test(pricing), "Expected pricing to use the tested Paddle Checkout event binding path.");
   assert(/\$9\.99\/month/.test(pricing), "Expected Coach to remain $9.99/month.");
   assert(!/Monthly Improvement Reports/.test(pricing), "Expected the unimplemented monthly report promise to stay removed.");
@@ -259,6 +328,9 @@ testAllowsOnlyWhitelistedUsersWhileGloballyClosed();
 testRejectsAnonymousUsersEvenIfAllowlistExists();
 testGlobalSwitchAllowsAuthenticatedUsers();
 testExistingCoachCannotPurchaseAgain();
+testSelectsBlockingSubscriptionAcrossAllPaddleRows();
+testCheckoutAccessExplainsEveryBlockingSubscriptionState();
+testBlockingSubscriptionStatesProvideTheCorrectPortalAction();
 testCheckoutCloseRestoresTheButton();
 testCheckoutOpenFailuresRestoreTheButton();
 testCheckoutRequestFailuresRestoreTheButton();

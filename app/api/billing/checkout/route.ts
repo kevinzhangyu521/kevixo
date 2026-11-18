@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPaddleCheckoutConfiguration } from "@/lib/paddle-admin";
 import { getUserFromRequest } from "@/lib/supabase-auth";
-import { isCoachUser } from "@/lib/subscription";
+import { getBlockingPaddleSubscriptionStatus } from "@/lib/subscription";
 import { getCoachCheckoutAccess } from "@/lib/coach-checkout";
 
 export async function GET(request: Request) {
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   try {
     const access = getCoachCheckoutAccess({
       globalEnabled: process.env.COACH_CHECKOUT_ENABLED,
-      isCoach: await isCoachUser(user.id),
+      subscriptionStatus: await getBlockingPaddleSubscriptionStatus(user.id),
       testUserIds: process.env.COACH_CHECKOUT_TEST_USER_IDS,
       userId: user.id,
     });
@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       ok: true,
       eligible: access === "allowed",
       alreadySubscribed: access === "already_subscribed",
+      checkoutAccess: access,
     });
   } catch (error) {
     return NextResponse.json(
@@ -42,13 +43,17 @@ export async function POST(request: Request) {
   try {
     const access = getCoachCheckoutAccess({
       globalEnabled: process.env.COACH_CHECKOUT_ENABLED,
-      isCoach: await isCoachUser(user.id),
+      subscriptionStatus: await getBlockingPaddleSubscriptionStatus(user.id),
       testUserIds: process.env.COACH_CHECKOUT_TEST_USER_IDS,
       userId: user.id,
     });
 
     if (access === "already_subscribed") {
-      return NextResponse.json({ ok: true, alreadySubscribed: true });
+      return NextResponse.json({ ok: true, alreadySubscribed: true, checkoutAccess: access });
+    }
+
+    if (access === "payment_update_required" || access === "subscription_paused") {
+      return NextResponse.json({ ok: true, existingSubscription: true, checkoutAccess: access });
     }
 
     if (access !== "allowed") {

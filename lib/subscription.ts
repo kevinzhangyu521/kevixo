@@ -24,6 +24,27 @@ type SubscriptionRow = {
 };
 
 const tableName = "subscriptions";
+const checkoutBlockingStatuses = ["active", "trialing", "past_due", "paused"] as const;
+export type CheckoutBlockingSubscriptionStatus = (typeof checkoutBlockingStatuses)[number];
+
+export function selectBlockingPaddleSubscriptionStatus(statuses: string[]): CheckoutBlockingSubscriptionStatus | null {
+  for (const status of checkoutBlockingStatuses) {
+    if (statuses.includes(status)) return status;
+  }
+  return null;
+}
+
+export async function getBlockingPaddleSubscriptionStatus(userId: string) {
+  const { data, error } = await getSubscriptionAdminClient()
+    .from(tableName)
+    .select("status")
+    .eq("user_id", userId)
+    .eq("provider", "paddle")
+    .returns<Array<{ status: string }>>();
+
+  if (error) throw new Error(error.message);
+  return selectBlockingPaddleSubscriptionStatus((data ?? []).map((row) => row.status));
+}
 
 export async function getSubscription(userId: string): Promise<Subscription> {
   const supabase = getSubscriptionAdminClient();
