@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders, getCurrentAccessToken } from "@/lib/auth-client";
 import {
-  getCoachCheckoutEventState,
   getCoachCheckoutFailureState,
   isCoachCheckoutEnabled,
+  openCoachPaddleCheckout,
 } from "@/lib/coach-checkout";
 import { saveGrowthEvent } from "@/lib/growth-client";
 
@@ -24,14 +24,19 @@ type PaddleCheckoutConfiguration = {
 declare global {
   interface Window {
     Paddle?: {
-      Environment: { set: (environment: "production") => void };
-      Initialize: (options: { token: string }) => void;
+      Initialized?: boolean;
+      Initialize: (options: {
+        token: string;
+        eventCallback: (event: { name?: string; type?: string; data?: unknown }) => void;
+      }) => void;
+      Update: (options: {
+        eventCallback: (event: { name?: string; type?: string; data?: unknown }) => void;
+      }) => void;
       Checkout: {
         open: (options: {
           items: Array<{ priceId: string; quantity: number }>;
           customer: { email: string };
           customData: Record<string, string>;
-          eventCallback: (event: { name?: string }) => void;
         }) => void;
       };
     };
@@ -61,7 +66,9 @@ export default function PricingPage() {
       ? "Upgrade when you are ready for long-term coaching."
       : "Checkout is currently available only to approved test accounts.",
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [checkoutPhase, setCheckoutPhase] = useState<"idle" | "opening" | "open" | "completed" | "failed">("idle");
+  const isLoading = checkoutPhase === "opening";
+  const checkoutBusy = isLoading || checkoutPhase === "open";
 
   useEffect(() => {
     if (globalCheckoutEnabled) return;
@@ -90,7 +97,7 @@ export default function PricingPage() {
 
   async function startCheckout() {
     if (!checkoutEnabled) return;
-    setIsLoading(true);
+    setCheckoutPhase("opening");
     setStatus("Preparing checkout...");
 
     try {
@@ -114,36 +121,33 @@ export default function PricingPage() {
       if (!response.ok || !payload.ok) throw new Error(payload.error ?? "Checkout could not be started.");
       if (payload.alreadySubscribed) {
         setStatus("Your Coach subscription is already active.");
-        setIsLoading(false);
+        setCheckoutPhase("completed");
         return;
       }
       if (!payload.checkout) throw new Error("Checkout could not be prepared.");
 
       const paddle = await loadPaddle();
-      paddle.Environment.set(payload.checkout.environment);
-      paddle.Initialize({ token: payload.checkout.clientToken });
-      let paymentCompleted = false;
-      paddle.Checkout.open({
-        items: [{ priceId: payload.checkout.priceId, quantity: 1 }],
-        customer: { email: payload.checkout.customerEmail },
-        customData: payload.checkout.customData,
-        eventCallback: (event) => {
-          const nextState = getCoachCheckoutEventState(event.name, paymentCompleted);
-          if (!nextState) return;
-
-          paymentCompleted = nextState.paymentCompleted;
-          setIsLoading(nextState.isLoading);
-          setStatus(nextState.status);
-          if (event.name === "checkout.completed") {
-            void saveGrowthEvent("checkout_completed");
-          }
+      openCoachPaddleCheckout(
+        paddle,
+        payload.checkout.clientToken,
+        {
+          items: [{ priceId: payload.checkout.priceId, quantity: 1 }],
+          customer: { email: payload.checkout.customerEmail },
+          customData: payload.checkout.customData,
         },
-      });
+        (nextState) => {
+          setCheckoutPhase(nextState.phase);
+          setStatus(nextState.status);
+        },
+        () => {
+          void saveGrowthEvent("checkout_completed");
+        },
+      );
       void saveGrowthEvent("checkout_started");
     } catch (error) {
       const failureState = getCoachCheckoutFailureState(error);
       setStatus(failureState.status);
-      setIsLoading(failureState.isLoading);
+      setCheckoutPhase(failureState.phase);
     }
   }
 
@@ -172,8 +176,8 @@ export default function PricingPage() {
             description="Everything in Free, plus Coach membership and unlimited analysis entitlement when Free limits are enabled."
             features={coachFeatures}
             action={
-              <Button onClick={startCheckout} disabled={!checkoutEnabled || isLoading}>
-                {!checkoutEnabled ? "Checkout Temporarily Closed" : isLoading ? "Opening Checkout..." : "Upgrade to Kevixo Coach"}
+              <Button onClick={startCheckout} disabled={!checkoutEnabled || checkoutBusy || checkoutPhase === "completed"}>
+                {!checkoutEnabled ? "Checkout Temporarily Closed" : isLoading ? "Opening Checkout..." : checkoutPhase === "open" ? "Checkout Open" : checkoutPhase === "completed" ? "Payment Received" : "Upgrade to Kevixo Coach"}
               </Button>
             }
           />
