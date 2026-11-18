@@ -340,6 +340,11 @@ export default function AccountPage() {
                 Coach billing is managed securely through Paddle. Your subscription status updates
                 after Paddle confirms each change.
               </p>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                Free includes 10 successful hand analyses per UTC month. Coach is $9.99/month. No
+                monthly product analysis quota applies to Coach. Demo hands and follow-up questions do not use
+                analysis credits. Both plans use the same analysis and study tools today.
+              </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 {subscription?.paddleCustomerId ? (
                   <Button onClick={() => handleManageSubscription("overview")} disabled={isBillingLoading}>

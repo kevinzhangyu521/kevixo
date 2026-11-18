@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
     if (access !== "allowed") {
       return NextResponse.json(
-        { ok: false, error: "New Coach subscriptions are not available yet." },
+        { ok: false, error: "Coach checkout is temporarily unavailable." },
         { status: 503 },
       );
     }

@@ -262,8 +262,9 @@ function BillingCard({
         ) : (
           <div className="flex flex-col items-start gap-3">
             <p className="text-sm leading-6 text-slate-400">
-              Coach is available for $9.99/month. Free currently has no monthly analysis limit and
-              includes the same analysis and study tools.
+              Coach is available for $9.99/month. No monthly product analysis quota applies to
+              Coach. Free includes 10 successful hand analyses per UTC month. Both plans use the same analysis
+              and study tools today. Demo hands and follow-up questions do not use analysis credits.
             </p>
             <Button asChild variant="secondary">
               <Link href="/pricing">View Coach plan</Link>

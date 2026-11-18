@@ -511,15 +511,20 @@ export default function ReviewPage() {
                   Reset Demo
                 </Button>
               </div>
-              <p className="text-sm text-slate-500">No signup. One hand. One clear report.</p>
+              <p className="max-w-sm text-sm leading-6 text-slate-500">
+                Guest: One free real hand analysis. No signup required. Free: 10 successful hand analyses per UTC month. Coach: $9.99/month. No monthly product analysis quota.
+              </p>
             </div>
+            <p className="mt-4 text-sm leading-6 text-slate-500">
+              Demo hands and follow-up questions do not use analysis credits. Failed analyses do not use a credit.
+            </p>
           </form>
         </Card>
 
         {isLoading ? <LoadingState activeStep={activeStep} /> : null}
         {reviewLookupMessage ? <ReviewUnavailable message={reviewLookupMessage} /> : null}
-        {error && analysisErrorCode === "anonymous_analysis_limit_reached" ? (
-          <AnonymousTrialLimit message={error} />
+        {error && (analysisErrorCode === "anonymous_analysis_limit_reached" || analysisErrorCode === "free_monthly_analysis_limit_reached") ? (
+          <AnalysisQuotaLimit code={analysisErrorCode} message={error} />
         ) : error ? (
           <HandCompletionAssistant handHistory={handHistory} onTryDemo={() => loadDemoHand()} />
         ) : null}
@@ -1084,17 +1089,27 @@ function LoadingState({ activeStep }: { activeStep: number }) {
   );
 }
 
-function AnonymousTrialLimit({ message }: { message: string }) {
+function AnalysisQuotaLimit({ code, message }: { code: string; message: string }) {
+  const isGuestLimit = code === "anonymous_analysis_limit_reached";
+
   return (
     <Card className="fade-in mt-8 border-primary/25 bg-primary/5" id="review-error">
-      <CardTitle>Continue your reviews with a free account</CardTitle>
+      <CardTitle>{isGuestLimit ? "Continue your reviews with a free account" : "Your Free monthly analysis credits are used"}</CardTitle>
       <p className="mt-3 text-base leading-7 text-slate-200" role="status">{message}</p>
       <p className="mt-2 text-sm leading-6 text-slate-400">
-        Your guest trial includes one successful real analysis. Demo hands remain available without using it.
+        {isGuestLimit
+          ? "Your guest trial includes one successful real analysis. Demo hands remain available without using it."
+          : "Free analysis credits reset at the start of the next UTC month. Demo hands and follow-up questions do not use analysis credits."}
       </p>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <Button asChild><Link href="/signup">Sign up free</Link></Button>
-        <Button asChild variant="secondary"><Link href="/login">Log in</Link></Button>
+        {isGuestLimit ? (
+          <>
+            <Button asChild><Link href="/signup">Sign up free</Link></Button>
+            <Button asChild variant="secondary"><Link href="/login">Log in</Link></Button>
+          </>
+        ) : (
+          <Button asChild><Link href="/pricing">Upgrade to Coach — No monthly product analysis quota</Link></Button>
+        )}
       </div>
     </Card>
   );

@@ -10,6 +10,7 @@ import { getHomepageStats, supportedPokerSites, type HomepageStats } from "@/lib
 export const dynamic = "force-dynamic";
 
 const valueProps = [
+  "One free real hand analysis",
   "No signup required",
   "Review one hand in under 60 seconds",
   "Built for Texas Hold'em decisions",
@@ -83,7 +84,7 @@ const faqs = [
   {
     question: "What is Kevixo Coach?",
     answer:
-      "Coach is available for $9.99/month. Free and Coach currently include the same analysis and study tools because no monthly Free analysis limit is enforced. Coach is a paid membership recognized across Kevixo, and you can cancel anytime through the Paddle Customer Portal. Kevixo is an AI coaching assistant, not a poker solver.",
+      "Guest: One free real hand analysis. No signup required. Free includes 10 successful hand analyses per UTC month. Coach is available for $9.99/month. No monthly product analysis quota applies to Coach. Demo hands and follow-up questions do not use analysis credits. Free and Coach use the same analysis and study tools today; Coach does not include a separate AI model or other unverified premium features. Normal technical, service, and reasonable-use safeguards still apply. You can cancel anytime through the Paddle Customer Portal. Kevixo is an AI coaching assistant, not a poker solver.",
   },
 ];
 

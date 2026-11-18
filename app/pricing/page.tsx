@@ -50,14 +50,17 @@ const freeFeatures = [
   "Full AI hand analysis with complete results",
   "Cloud-saved hand review history when you sign in",
   "Leak Tracker, Progress, Daily, and Training",
-  "No monthly Free analysis limit is currently enforced",
+  "10 successful hand analyses per UTC month",
+  "Demo hands and follow-up questions do not use analysis credits",
 ];
 
 const coachFeatures = [
-  "The same analysis and study tools currently included in Free",
+  "No monthly product analysis quota",
+  "The same analysis and study tools included in Free",
   "Active Coach membership shown across Kevixo",
   "Paddle Customer Portal for payment and subscription management",
   "Billed $9.99 monthly; cancel anytime through the Paddle Customer Portal",
+  "Normal technical, service, and reasonable-use safeguards apply",
 ];
 
 const globalCheckoutEnabled = isCoachCheckoutEnabled(process.env.NEXT_PUBLIC_COACH_CHECKOUT_ENABLED);
@@ -66,8 +69,8 @@ export default function PricingPage() {
   const [checkoutEnabled, setCheckoutEnabled] = useState(globalCheckoutEnabled);
   const [status, setStatus] = useState(
     globalCheckoutEnabled
-      ? "Upgrade when you are ready for long-term coaching."
-      : "Checkout is currently available only to approved test accounts.",
+      ? "Choose Coach when you need no monthly product analysis quota."
+      : "Coach checkout is temporarily unavailable.",
   );
   const [checkoutPhase, setCheckoutPhase] = useState<"idle" | "opening" | "open" | "completed" | "failed">("idle");
   const [subscriptionUi, setSubscriptionUi] = useState<CoachCheckoutSubscriptionUi | null>(null);
@@ -97,7 +100,7 @@ export default function PricingPage() {
         setCheckoutEnabled(true);
         setStatus(
           globalCheckoutEnabled
-            ? "Upgrade when you are ready for long-term coaching."
+            ? "Choose Coach when you need no monthly product analysis quota."
             : "Live Checkout test access is enabled for this account.",
         );
       }
@@ -180,7 +183,8 @@ export default function PricingPage() {
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Kevixo plans</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 md:text-6xl">AI poker coaching plans</h1>
-          <p className="mt-5 text-base leading-7 text-slate-400 md:text-lg">Free and Coach currently include the same analysis and study tools. No monthly Free analysis limit is currently enforced.</p>
+          <p className="mt-5 text-base leading-7 text-slate-400 md:text-lg">Guest: One free real hand analysis. No signup required. Free includes 10 successful hand analyses per UTC month. Coach: $9.99/month. No monthly product analysis quota.</p>
+          <p className="mt-3 text-sm leading-6 text-slate-500">Demo hands and follow-up questions do not use analysis credits.</p>
         </div>
 
         <div className="mt-10 grid items-stretch gap-5 lg:grid-cols-2 lg:grid-rows-[auto_auto_auto_1fr_auto]">
@@ -195,7 +199,7 @@ export default function PricingPage() {
             highlighted
             title="Coach"
             price="$9.99/month"
-            description="A paid Coach membership with the same analysis and study access currently available in Free. No additional product features are unlocked today."
+            description="Coach removes the monthly product analysis quota. Free and Coach use the same analysis and study tools today; no separate premium AI model or other exclusive feature is promised."
             features={coachFeatures}
             action={
               subscriptionUi ? (
@@ -204,7 +208,7 @@ export default function PricingPage() {
                 </Button>
               ) : (
                 <Button onClick={startCheckout} disabled={!checkoutEnabled || checkoutBusy || checkoutPhase === "completed"}>
-                  {!checkoutEnabled ? "Checkout Temporarily Closed" : isLoading ? "Opening Checkout..." : checkoutPhase === "open" ? "Checkout Open" : checkoutPhase === "completed" ? "Payment Received" : "Upgrade to Kevixo Coach"}
+                  {!checkoutEnabled ? "Checkout Temporarily Unavailable" : isLoading ? "Opening Checkout..." : checkoutPhase === "open" ? "Checkout Open" : checkoutPhase === "completed" ? "Payment Received" : "Upgrade to Kevixo Coach"}
                 </Button>
               )
             }

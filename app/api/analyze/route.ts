@@ -134,7 +134,10 @@ export async function POST(request: Request) {
       if (reservation.kind === "quota_exceeded") {
         return userId
           ? jsonWithAnonymousCookie(
-              { error: "You have used your 10 Free analyses for this UTC month." },
+              {
+                error: "You have used all 10 successful hand analyses included with Free for this UTC month.",
+                code: "free_monthly_analysis_limit_reached",
+              },
               429,
               anonymousSetCookie,
             )

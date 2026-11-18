@@ -6,7 +6,7 @@ const siteUrl = "https://www.kevixo.com";
 const pageUrl = `${siteUrl}/pricing`;
 const title = "AI Poker Coaching Plans | Kevixo";
 const description =
-  "Compare Kevixo Free with the Coach $9.99 monthly subscription. Free currently has no monthly analysis limit, and Coach can be canceled anytime through Paddle.";
+  "Compare Guest, Free, and Coach: one free real hand analysis for Guest, 10 successful hand analyses per UTC month for Free, and Coach at $9.99/month. No monthly product analysis quota applies to Coach.";
 
 export const metadata: Metadata = {
   title,

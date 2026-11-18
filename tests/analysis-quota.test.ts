@@ -221,6 +221,10 @@ function testMigrationDefinesAtomicLifecycle() {
   assert(/beginAnalysisQuota/.test(route) && /confirmAnalysisQuota/.test(route) && /releaseAnalysisQuota/.test(route), "Expected the analyze route to use the quota lifecycle.");
   assert(route.indexOf("reservation = await beginAnalysisQuota") < route.indexOf("const result = await analyzeHandHistory"), "Expected reservation before AI analysis.");
   assert(route.indexOf("const confirmation = await confirmAnalysisQuota") < route.indexOf("await insertHandReview"), "Expected confirmation before Review persistence.");
+  assert(/free_monthly_analysis_limit_reached/.test(route), "Expected Free quota exhaustion to return a distinct user-visible error code.");
+  assert(/free_monthly_analysis_limit_reached/.test(page), "Expected Review to render a dedicated Free quota exhaustion state.");
+  assert(/reset at the start of the next UTC month/.test(page), "Expected the Free quota state to explain the UTC reset accurately.");
+  assert(/Upgrade to Coach/.test(page) && /No monthly product analysis quota/.test(page), "Expected the Free quota state to describe the implemented Coach exemption without promising premium features.");
   assert(/crypto\.randomUUID\(\)/.test(page) && /requestId/.test(page), "Expected the client to send stable request IDs.");
   assert(/ANALYSIS_QUOTA_ENABLED=false/.test(envExample), "Expected analysis quota to default off.");
   assert(/const quotaEnabled = isAnalysisQuotaEnabled\(process\.env\.ANALYSIS_QUOTA_ENABLED\)/.test(route), "Expected the route to use the private quota gate.");
