@@ -50,14 +50,14 @@ const freeFeatures = [
   "Full AI hand analysis with complete results",
   "Cloud-saved hand review history when you sign in",
   "Leak Tracker, Progress, Daily, and Training",
-  "No monthly analysis limit is currently enforced",
+  "No monthly Free analysis limit is currently enforced",
 ];
 
 const coachFeatures = [
-  "Everything currently available in Free",
-  "Coach membership recognized across Kevixo",
-  "Unlimited analysis entitlement when Free limits are enabled",
-  "Paddle Portal for payments, billing, and cancellation",
+  "The same analysis and study tools currently included in Free",
+  "Active Coach membership shown across Kevixo",
+  "Paddle Customer Portal for payment and subscription management",
+  "Billed $9.99 monthly; cancel anytime through the Paddle Customer Portal",
 ];
 
 const globalCheckoutEnabled = isCoachCheckoutEnabled(process.env.NEXT_PUBLIC_COACH_CHECKOUT_ENABLED);
@@ -179,8 +179,8 @@ export default function PricingPage() {
       <section className="mx-auto w-full max-w-6xl px-5 pb-16 pt-8 md:pb-24 md:pt-12">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Kevixo plans</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 md:text-6xl">Study poker decisions with Kevixo</h1>
-          <p className="mt-5 text-base leading-7 text-slate-400 md:text-lg">Free currently includes every available study tool. Monthly Free analysis limits are not enabled.</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-50 md:text-6xl">AI poker coaching plans</h1>
+          <p className="mt-5 text-base leading-7 text-slate-400 md:text-lg">Free and Coach currently include the same analysis and study tools. No monthly Free analysis limit is currently enforced.</p>
         </div>
 
         <div className="mt-10 grid items-stretch gap-5 lg:grid-cols-2 lg:grid-rows-[auto_auto_auto_1fr_auto]">
@@ -195,7 +195,7 @@ export default function PricingPage() {
             highlighted
             title="Coach"
             price="$9.99/month"
-            description="Everything in Free, plus Coach membership and unlimited analysis entitlement when Free limits are enabled."
+            description="A paid Coach membership with the same analysis and study access currently available in Free. No additional product features are unlocked today."
             features={coachFeatures}
             action={
               subscriptionUi ? (
@@ -211,6 +211,7 @@ export default function PricingPage() {
           />
         </div>
         <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-6 text-slate-400">{status}</p>
+        <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-slate-500">Kevixo is an AI coaching assistant, not a poker solver. It provides educational feedback, not guaranteed results.</p>
       </section>
     </main>
   );

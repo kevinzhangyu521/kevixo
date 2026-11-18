@@ -83,7 +83,7 @@ const faqs = [
   {
     question: "What is Kevixo Coach?",
     answer:
-      "Coach subscriptions are not currently available to new players. Kevixo's hand review and study tools remain available on the Free plan.",
+      "Coach is available for $9.99/month. Free and Coach currently include the same analysis and study tools because no monthly Free analysis limit is enforced. Coach is a paid membership recognized across Kevixo, and you can cancel anytime through the Paddle Customer Portal. Kevixo is an AI coaching assistant, not a poker solver.",
   },
 ];
 

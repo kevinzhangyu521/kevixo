@@ -260,9 +260,15 @@ function BillingCard({
             {isBillingLoading ? "Opening..." : "Manage Subscription"}
           </Button>
         ) : (
-          <p className="text-sm leading-6 text-slate-400">
-            New Coach subscriptions are not currently available. Your free study tools remain available.
-          </p>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm leading-6 text-slate-400">
+              Coach is available for $9.99/month. Free currently has no monthly analysis limit and
+              includes the same analysis and study tools.
+            </p>
+            <Button asChild variant="secondary">
+              <Link href="/pricing">View Coach plan</Link>
+            </Button>
+          </div>
         )}
         {isCoach ? (
           <Button onClick={() => onManageBilling("overview")} disabled={isBillingLoading} variant="secondary">

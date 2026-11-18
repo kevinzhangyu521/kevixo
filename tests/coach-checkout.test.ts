@@ -304,6 +304,9 @@ function testPaddleEventsAreRegisteredAtTheSdkLevelAndSupportReopening() {
 function testPreparedCheckoutRemainsGated() {
   const route = readFileSync("app/api/billing/checkout/route.ts", "utf8");
   const pricing = readFileSync("app/pricing/page.tsx", "utf8");
+  const pricingMetadata = readFileSync("app/pricing/layout.tsx", "utf8");
+  const homepage = readFileSync("app/page.tsx", "utf8");
+  const profile = readFileSync("app/profile/page.tsx", "utf8");
 
   assert(/COACH_CHECKOUT_ENABLED/.test(route), "Expected a private server-side checkout gate.");
   assert(/COACH_CHECKOUT_TEST_USER_IDS/.test(route), "Expected a private server-side test allowlist.");
@@ -316,6 +319,20 @@ function testPreparedCheckoutRemainsGated() {
   assert(!/if \(globalCheckoutEnabled\) return/.test(pricing), "Expected existing subscriptions to be checked even when public Checkout is globally enabled.");
   assert(/openCoachPaddleCheckout\(/.test(pricing), "Expected pricing to use the tested Paddle Checkout event binding path.");
   assert(/\$9\.99\/month/.test(pricing), "Expected Coach to remain $9.99/month.");
+  assert(/AI Poker Coaching Plans \| Kevixo/.test(pricingMetadata), "Expected pricing metadata to describe Kevixo AI poker coaching plans.");
+  assert(/Coach \$9\.99 monthly subscription/.test(pricingMetadata), "Expected pricing metadata to describe the Coach monthly subscription.");
+  assert(/AI poker coaching plans/.test(pricing), "Expected the pricing H1 to target AI poker coaching plans.");
+  assert(/Coach is available for \$9\.99\/month/.test(homepage), "Expected the homepage FAQ to state current Coach availability and price.");
+  assert(/cancel anytime through the Paddle Customer Portal/.test(homepage), "Expected the homepage FAQ to explain cancellation.");
+  assert(!/Coach subscriptions are not currently available to new players/.test(homepage), "Expected the stale Coach availability statement to be removed.");
+  assert(!/Unlimited analysis entitlement|when Free limits are enabled/i.test(pricing), "Expected pricing not to promise a future unlimited-analysis benefit.");
+  assert(/Free and Coach currently include the same analysis and study tools/.test(pricing), "Expected pricing to disclose the current lack of feature differentiation.");
+  assert(/No monthly Free analysis limit is currently enforced/.test(pricing), "Expected pricing to state that the Free quota is disabled.");
+  assert(/AI coaching assistant, not a poker solver/.test(pricing), "Expected pricing to explain that Kevixo is not a solver.");
+  assert(!/New Coach subscriptions are not currently available/.test(profile), "Expected Profile not to claim that Coach sales are closed.");
+  assert(/Coach is available for \$9\.99\/month/.test(profile), "Expected Profile to state current Coach availability and price.");
+  assert(/Free currently has no monthly analysis limit/.test(profile), "Expected Profile to keep the current Free quota state accurate.");
+  assert(/href="\/pricing"/.test(profile), "Expected Profile to send eligible Free users to the current Coach offer.");
   assert(!/Monthly Improvement Reports/.test(pricing), "Expected the unimplemented monthly report promise to stay removed.");
   assert(!/Coach benefits will be finalized|paid benefits are confirmed|benefits are finalized/i.test(pricing), "Expected stale Coach preparation copy to be removed.");
   assert(/setCheckoutPhase\(nextState\.phase\)/.test(pricing), "Expected Checkout events to update the rendered lifecycle state.");
